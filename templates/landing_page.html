@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheel Alignment Info - Professional Service Management App</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #f59e0b;
+            --dark-color: #1f2937;
+            --light-gray: #f8fafc;
+            --medium-gray: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            overflow-x: hidden;
+        }
+
+        /* Custom Navbar */
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            padding: 1rem 0;
+        }
+
+        .navbar-custom.scrolled {
+            background: rgba(255, 255, 255, 0.98) !important;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+            padding: 0.5rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.5rem;
+            color: var(--primary-color) !important;
+        }
+
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            color: var(--medium-gray) !important;
+            margin: 0 0.5rem;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: var(--primary-color) !important;
+        }
+
+        .navbar-nav .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 50%;
+            background: var(--primary-color);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        .navbar-nav .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="80" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="60" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(360deg); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            color: white;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2rem;
+            font-weight: 400;
+            max-width: 500px;
+        }
+
+        .hero-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .hero-badge {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .phone-mockup {
+            max-width: 350px;
+            position: relative;
+            transform: rotate(-5deg);
+            animation: phoneFloat 3s ease-in-out infinite alternate;
+            filter: drop-shadow(0 20px 40px rgba(0,0,0,0.3));
+        }
+
+        @keyframes phoneFloat {
+            0% { transform: rotate(-5deg) translateY(0px); }
+            100% { transform: rotate(-5deg) translateY(-15px); }
+        }
+
+        .phone-frame {
+            background: #1a202c;
+            border-radius: 30px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .phone-screen {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 20px;
+            aspect-ratio: 9/19;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 100px 0;
+            background: var(--light-gray);
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            color: var(--dark-color);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--medium-gray);
+            text-align: center;
+            margin-bottom: 4rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            height: 100%;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            color: white;
+            font-size: 2rem;
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+        }
+
+        .feature-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 1rem;
+        }
+
+        .feature-description {
+            color: var(--medium-gray);
+            line-height: 1.7;
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .pricing-card {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 25px;
+            padding: 3rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.3);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: rotate(45deg);
+        }
+
+        .pricing-badge {
+            background: var(--accent-color);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .price-display {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .price-currency {
+            font-size: 2rem;
+            vertical-align: top;
+        }
+
+        .price-period {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 2.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .pricing-features li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .pricing-features li i {
+            background: #10b981;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        /* Download Section */
+        .download-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, var(--dark-color) 0%, #111827 100%);
+            color: white;
+        }
+
+        .store-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 3rem;
+        }
+
+        .store-button {
+            background: #000;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+            border: 1px solid #333;
+            min-width: 200px;
+        }
+
+        .store-button:hover {
+            background: #333;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .store-logo {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 1.5rem;
+        }
+
+        .store-text {
+            text-align: left;
+        }
+
+        .store-text small {
+            display: block;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .store-text strong {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* Footer */
+        .footer-section {
+            background: #111827;
+            color: white;
+            padding: 60px 0 20px;
+        }
+
+        .footer-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #f9fafb;
+        }
+
+        .footer-link {
+            color: #9ca3af;
+            text-decoration: none;
+            display: block;
+            padding: 0.25rem 0;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-color);
+        }
+
+        .admin-button {
+            background: #374151;
+            color: #d1d5db;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid #4b5563;
+            font-weight: 500;
+        }
+
+        .admin-button:hover {
+            background: #4b5563;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #374151;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        /* Animations */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Custom Buttons */
+        .btn-custom-primary {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-custom-primary:hover {
+            background: #d97706;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-custom-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-weight: 600;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-custom-secondary:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--primary-color);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .phone-mockup {
+                max-width: 280px;
+                margin-bottom: 2rem;
+            }
+
+            .feature-card {
+                padding: 2rem;
+                text-align: center;
+            }
+
+            .pricing-card {
+                padding: 2rem;
+                margin: 0 1rem;
+            }
+
+            .store-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .store-button {
+                width: 100%;
+                max-width: 300px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="bi bi-gear-fill me-2"></i>
+                Wheel Alignment Info
+            </a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#pricing">Pricing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#download">Download</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact">Contact</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-100 py-5">
+                <div class="col-lg-6 hero-content">
+                    <h1 class="hero-title">Complete Wheel Alignment Management Solution</h1>
+                    <p class="hero-subtitle">Streamline your wheel alignment business with our comprehensive mobile app. Manage customers, track services, and never miss a follow-up.</p>
+                    
+                    <div class="hero-features">
+                        <span class="hero-badge">
+                            <i class="bi bi-phone me-1"></i> Mobile App
+                        </span>
+                        <span class="hero-badge">
+                            <i class="bi bi-people me-1"></i> Customer Management
+                        </span>
+                        <span class="hero-badge">
+                            <i class="bi bi-graph-up me-1"></i> Service Tracking
+                        </span>
+                        <span class="hero-badge">
+                            <i class="bi bi-chat-text me-1"></i> SMS Reminders
+                        </span>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="#download" class="btn-custom-primary">
+                            <i class="bi bi-download me-2"></i>Download Now
+                        </a>
+                        <a href="#features" class="btn-custom-secondary">
+                            Learn More
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 text-center">
+                    <div class="phone-mockup">
+                        <div class="phone-frame">
+                            <div class="phone-screen">
+                                <i class="bi bi-gear-fill" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                                <h4>Wheel Alignment Info</h4>
+                                <p class="mb-0">Professional Service Management</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <h2 class="section-title">Powerful Features for Your Business</h2>
+            <p class="section-subtitle">Everything you need to manage your wheel alignment service center efficiently and professionally</p>
+            
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card fade-in-up">
+                        <div class="feature-icon">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <h3 class="feature-title">Customer Management</h3>
+                        <p class="feature-description">Store comprehensive customer details including contact information, vehicle details, service history, and preferences. Easy search and filter options.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card fade-in-up">
+                        <div class="feature-icon">
+                            <i class="bi bi-tools"></i>
+                        </div>
+                        <h3 class="feature-title">Service Details Tracking</h3>
+                        <p class="feature-description">Record complete service information including alignment measurements, adjustments made, parts used, service dates, and technician notes.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card fade-in-up">
+                        <div class="feature-icon">
+                            <i class="bi bi-chat-text-fill"></i>
+                        </div>
+                        <h3 class="feature-title">SMS Reminders</h3>
+                        <p class="feature-description">Automatically send SMS reminders to customers when their alignment service is due. Customizable reminder schedules to keep customers engaged.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card fade-in-up">
+                        <div class="feature-icon">
+                            <i class="bi bi-speedometer2"></i>
+                        </div>
+                        <h3 class="feature-title">Service Center Dashboard</h3>
+                        <p class="feature-description">Comprehensive dashboard showing upcoming services, customer statistics, revenue tracking, and business insights for informed decisions.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card fade-in-up">
+                        <div class="feature-icon">
+                            <i class="bi bi-person-badge-fill"></i>
+                        </div>
+                        <h3 class="feature-title">Multiple Staff Management</h3>
+                        <p class="feature-description">Add multiple staff members with different access levels. Track individual performance, assign services to specific technicians effectively.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card fade-in-up">
+                        <div class="feature-icon">
+                            <i class="bi bi-phone-fill"></i>
+                        </div>
+                        <h3 class="feature-title">Mobile Optimized</h3>
+                        <p class="feature-description">Fully responsive mobile application that works seamlessly on all devices. Access your business data anytime, anywhere with intuitive interface.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing-section">
+        <div class="container">
+            <h2 class="section-title">Simple, Affordable Pricing</h2>
+            <p class="section-subtitle">Get started with our comprehensive wheel alignment management solution</p>
+            
+            <div class="pricing-card fade-in-up">
+                <div class="pricing-badge">Most Popular</div>
+                <div class="price-display">
+                    <span class="price-currency">₹</span>1,499
+                </div>
+                <div class="price-period">per month subscription</div>
+                
+                <ul class="pricing-features">
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Unlimited Customer Records</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Complete Service Management</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>SMS Reminder System</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Multiple Staff Accounts</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Business Dashboard & Analytics</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Mobile App Access</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Cloud Data Backup</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>24/7 Customer Support</span>
+                    </li>
+                </ul>
+                
+                <a href="#download" class="btn btn-light btn-lg w-100" style="color: var(--primary-color); font-weight: 600;">
+                    <i class="bi bi-rocket-takeoff me-2"></i>Start Free Trial
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download-section text-center">
+        <div class="container">
+            <h2 class="section-title text-white">Download Wheel Alignment Info</h2>
+            <p class="section-subtitle text-white-50">Get our mobile app and start managing your wheel alignment business today</p>
+            
+            <div class="store-buttons">
+                <a href="#" class="store-button">
+                    <div class="store-logo">
+                        <i class="bi bi-apple"></i>
+                    </div>
+                    <div class="store-text">
+                        <small>Download on the</small>
+                        <strong>App Store</strong>
+                    </div>
+                </a>
+                
+                <a href="#" class="store-button">
+                    <div class="store-logo">
+                        <i class="bi bi-google-play"></i>
+                    </div>
+                    <div class="store-text">
+                        <small>Get it on</small>
+                        <strong>Google Play</strong>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact" class="footer-section">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <h3 class="footer-title">
+                        <i class="bi bi-gear-fill me-2"></i>
+                        Wheel Alignment Info
+                    </h3>
+                    <p class="text-muted">The complete mobile solution for wheel alignment service centers. Manage customers, track services, and grow your business with our comprehensive app.</p>
+                </div>
+                
+                <div class="col-lg-2 col-md-6">
+                    <h4 class="footer-title">Features</h4>
+                    <a href="#features" class="footer-link">Customer Management</a>
+                    <a href="#features" class="footer-link">Service Tracking</a>
+                    <a href="#features" class="footer-link">SMS Reminders</a>
+                    <a href="#features" class="footer-link">Staff Management</a>
+                </div>
+                
+                <div class="col-lg-2 col-md-6">
+                    <h4 class="footer-title">Support</h4>
+                    <a href="#" class="footer-link">Help Center</a>
+                    <a href="#" class="footer-link">Contact Us</a>
+                    <a href="#" class="footer-link">Privacy Policy</a>
+                    <a href="#" class="footer-link">Terms of Service</a>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <h4 class="footer-title">Business Access</h4>
+                    <p class="text-muted mb-3">Service center administrators can access the management portal:</p>
+                    <a href="{% url 'admin_login' %}" class="admin-button">
+                        <i class="bi bi-shield-lock-fill"></i>
+                        Admin Login
+                    </a>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p class="mb-0">&copy; 2025 Wheel Alignment Info. All rights reserved. | Monthly Subscription: ₹1,499</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5.3 JS Bundle -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar-custom');
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offsetTop = target.offsetTop - 80;
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.classList.add('visible');
+                    }, index * 100);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        // Observe all fade-in elements
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Mobile menu auto-close on link click
+        document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                const navbarCollapse = document.querySelector('.navbar-collapse');
+                if (navbarCollapse.classList.contains('show')) {
+                    const bsCollapse = new bootstrap.Collapse(navbarCollapse);
+                    bsCollapse.hide();
+                }
+            });
+        });
+
+        // Active navigation link highlighting
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+
+            let currentSection = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    currentSection = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${currentSection}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Preloader (optional)
+        window.addEventListener('load', () => {
+            document.body.classList.add('loaded');
+        });
+
+        // Add some interactive feedback for buttons
+        document.querySelectorAll('.btn, .store-button, .admin-button').forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Form validation (if needed later)
+        function validateForm(form) {
+            let isValid = true;
+            const inputs = form.querySelectorAll('input[required], textarea[required]');
+            
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+            
+            return isValid;
+        }
+
+        // Analytics tracking (placeholder)
+        function trackEvent(eventName, eventData) {
+            console.log('Tracking event:', eventName, eventData);
+            // Integration with Google Analytics, Facebook Pixel, etc.
+        }
+
+        // Track download button clicks
+        document.querySelectorAll('.store-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const storeName = e.currentTarget.querySelector('strong').textContent;
+                trackEvent('download_click', { store: storeName });
+            });
+        });
+
+        // Track pricing CTA click
+        document.querySelector('.pricing-card .btn').addEventListener('click', () => {
+            trackEvent('pricing_cta_click', { plan: 'monthly_1499' });
+        });
+    </script>
+</body>
+</html>
