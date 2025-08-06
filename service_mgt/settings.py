@@ -20,7 +20,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -98,7 +97,7 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Database-backed sessio
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days in seconds
 
 
-# Recommended: Configure caching for recommendation queries
+# Recommended: Configure caching for recommendation queries 
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
