@@ -93,13 +93,39 @@ SWAGGER_SETTINGS = {
         }
     },
 }
-CORS_ALLOWED_ORIGINS = [
+# CORS_ALLOWED_ORIGINS = [
    
-    "http://localhost:8081",
-    "http://localhost:3000",
-    "http://127.0.0.1:8000",
-]
+#     "http://localhost:8081",
+#     "http://localhost:3000",
+#     "http://127.0.0.1:8000",
+# ]
 # Configure session settings
+# Allow all origins
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Optional: Additional CORS settings
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CORS_ALLOWED_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Database-backed sessions
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days in seconds
