@@ -15,12 +15,72 @@
       <link rel="stylesheet" href="{% static 'assets/vendor/@fortawesome/fontawesome-free/css/all.min.css' %}">
       <link rel="stylesheet" href="{% static 'assets/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css' %}">
       <link rel="stylesheet" href="{% static 'assets/vendor/remixicon/fonts/remixicon.css' %}">  </head>
-  <body class="  ">
+  
+ <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #f8f8f8; /* Optional background */
+    }
+    .loader-container {
+      position: fixed;          /* Cover whole screen */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .loader-wrapper {
+      position: relative;
+      width: 200px;    /* Adjust size as needed */
+      height: 200px;
+    }
+    .loader-wrapper img {
+      width: 150px;    /* Static image size */
+      height: 150px;
+      object-fit: contain;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+    .spinner-ring {
+      box-sizing: border-box;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 8px solid #ddd;           /* Base ring color */
+      border-top: 8px solid #2E8B57;    /* Spinner color */
+      border-radius: 50%;
+      animation: spin 1.5s linear infinite;
+      z-index: 1;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .content {
+      padding: 20px;
+    }
+  </style>
+      <body class="  ">
     <!-- loader Start -->
-    <div id="loading">
-          <div id="loading-center">
-          </div>
+    <!-- <div id="loading"> -->
+         <div class="loader-container" id="loader">
+    <div class="loader-wrapper">
+      <div class="spinner-ring"></div>
+      <img src="{% static 'assets/images/logo.png' %}" alt="Logo">
     </div>
+  </div>
+    <!-- </div> -->
     <!-- loader END -->
     <!-- Wrapper Start -->
     <div class="wrapper">
@@ -73,25 +133,26 @@
                               <svg class="svg-icon" id="p-dash3" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                               </svg>
-                              <span class="ml-4">Categories</span>
+                              <span class="ml-4">Brand And Model
+                              </span>
                               <svg class="svg-icon iq-arrow-right arrow-active" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <polyline points="10 15 15 20 20 15"></polyline><path d="M4 4h7a4 4 0 0 1 4 4v12"></path>
                               </svg>
                           </a>
                           <ul id="category" class="iq-submenu collapse" data-parent="#iq-sidebar-toggle">
                                   <li class="">
-                                          <a href="../backend/page-list-category.html">
-                                              <i class="las la-minus"></i><span>List Category</span>
+                                          <a href="{%url 'list_brand' %}">
+                                              <i class="las la-minus"></i><span>List Brand</span>
                                           </a>
                                   </li>
                                   <li class="">
-                                          <a href="../backend/page-add-category.html">
-                                              <i class="las la-minus"></i><span>Add Category</span>
+                                          <a href="{%url 'add_brand' %}">
+                                              <i class="las la-minus"></i><span>Add Brand</span>
                                           </a>
                                   </li>
                           </ul>
                       </li>
-                      <li class=" ">
+                      <!-- <li class=" ">
                           <a href="#sale" class="collapsed" data-toggle="collapse" aria-expanded="false">
                               <svg class="svg-icon" id="p-dash4" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path>
@@ -570,7 +631,7 @@
                                           </a>
                                   </li>
                           </ul>
-                      </li>
+                      </li> -->
                   </ul>
               </nav>
               
@@ -739,7 +800,7 @@
 
       <div class="content-page">
      <div class="container-fluid">
-        <div class="row">
+        <!-- <div class="row">
             
             <div class="col-lg-8">
                 <div class="row">
@@ -1085,7 +1146,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
         
         <!-- Page end  -->
     </div>
@@ -1155,6 +1216,17 @@
         {% endif %}
         {% endfor %}
     </script>
+    <script>
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      loader.style.transition = 'opacity 0.5s ease';
+
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 500); // matches the fade-out time
+    });
+  </script>
  
   </body>
 </html>

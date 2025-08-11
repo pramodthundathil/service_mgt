@@ -14,3 +14,13 @@ def admin_only(view_fun):
             return redirect('admin_login')
         
     return wrapper_fun
+
+def unauthenticated_user(view_fun):
+    def wrapper_fun(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return view_fun(request, *args, **kwargs)
+        else:
+            return redirect("admin_dashboard")
+        
+    return wrapper_fun
+

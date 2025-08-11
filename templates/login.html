@@ -16,12 +16,69 @@
       <link rel="stylesheet" href="{% static 'assets/vendor/@fortawesome/fontawesome-free/css/all.min.css' %}">
       <link rel="stylesheet" href="{% static 'assets/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css' %}">
       <link rel="stylesheet" href="{% static 'assets/vendor/remixicon/fonts/remixicon.css' %}">  </head>
-  <body class=" ">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #f8f8f8; /* Optional background */
+    }
+    .loader-container {
+      position: fixed;          /* Cover whole screen */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .loader-wrapper {
+      position: relative;
+      width: 200px;    /* Adjust size as needed */
+      height: 200px;
+    }
+    .loader-wrapper img {
+      width: 150px;    /* Static image size */
+      height: 150px;
+      object-fit: contain;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+    .spinner-ring {
+      box-sizing: border-box;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 8px solid #ddd;           /* Base ring color */
+      border-top: 8px solid #2E8B57;    /* Spinner color */
+      border-radius: 50%;
+      animation: spin 1.5s linear infinite;
+      z-index: 1;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .content {
+      padding: 20px;
+    }
+  </style>
+      <body class=" ">
     <!-- loader Start -->
-    <div id="loading">
-          <div id="loading-center">
-          </div>
+          <div class="loader-container" id="loader">
+    <div class="loader-wrapper">
+      <div class="spinner-ring"></div>
+      <img src="{% static 'assets/images/logo.png' %}" alt="Logo">
     </div>
+  </div>
     <!-- loader END -->
     
       <div class="wrapper">
@@ -64,7 +121,7 @@
                               </div>
                            </div>
                            <div class="col-lg-5 content-right">
-                              <img src="{% static 'assets/images/login/01.png' %}" class="img-fluid image-right" alt="">
+                              <img src="{% static 'assets/images/logo.png' %}" class="img-fluid image-right" alt="">
                            </div>
                         </div>
                      </div>
@@ -117,6 +174,17 @@
         {% endif %}
         {% endfor %}
     </script>
-{% endblock %}    
+{% endblock %} 
+<script>
+    window.addEventListener('load', () => {
+      const loader = document.getElementById('loader');
+      loader.style.opacity = '0';
+      loader.style.transition = 'opacity 0.5s ease';
+
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 500); // matches the fade-out time
+    });
+  </script>   
   </body>
 </html>

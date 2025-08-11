@@ -269,3 +269,119 @@ class SubscriptionForm(BaseFormControlMixin, forms.ModelForm):
         return end
 
 
+# brand and variant
+
+from interactions.models import Brand, VehicleVariant
+
+
+
+
+class BrandForm(forms.ModelForm):
+    class Meta:
+        model = Brand
+        fields = ['name', 'image', 'image_url']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Brand Name'
+            }),
+            'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'image_url': forms.URLInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Image URL'
+            }),
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if name:
+            name = name.strip().title()
+            # Check if brand name already exists (excluding current instance if editing)
+            existing_brand = Brand.objects.filter(name__iexact=name)
+            if self.instance.pk:
+                existing_brand = existing_brand.exclude(pk=self.instance.pk)
+            if existing_brand.exists():
+                raise forms.ValidationError(f'Brand "{name}" already exists.')
+        return name
+
+class VehicleVariantForm(forms.ModelForm):
+    class Meta:
+        model = VehicleVariant
+        fields = ['brand', 'variant_name', 'body_type']
+        widgets = {
+            'brand': forms.Select(attrs={'class': 'form-control'}),
+            'variant_name': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Variant Name'
+            }),
+            'body_type': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        brand = kwargs.pop('brand', None)
+        super().__init__(*args, **kwargs)
+        
+        # If brand is provided, hide the brand field and set it as initial
+        if brand:
+            self.fields['brand'].widget = forms.HiddenInput()
+            self.fields['brand'].initial = brand
+
+    def clean_variant_name(self):
+        variant_name = self.cleaned_data.get('variant_name')
+        brand = self.cleaned_data.get('brand')
+        
+        if variant_name and brand:
+            variant_name = variant_name.strip().title()
+            # Check if variant name already exists for this brand
+            existing_variant = VehicleVariant.objects.filter(
+                brand=brand, 
+                variant_name__iexact=variant_name
+            )
+            if self.instance.pk:
+                existing_variant = existing_variant.exclude(pk=self.instance.pk)
+            if existing_variant.exists():
+                raise forms.ValidationError(
+                    f'Variant "{variant_name}" already exists for {brand.name}.'
+                )
+        return variant_name
+
+# Separate form for adding variants (without brand field)
+class AddVariantForm(forms.ModelForm):
+    class Meta:
+        model = VehicleVariant
+        fields = ['variant_name', 'body_type']
+        widgets = {
+            'variant_name': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Enter Variant Name',
+                'required': True
+            }),
+            'body_type': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.brand = kwargs.pop('brand', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_variant_name(self):
+        variant_name = self.cleaned_data.get('variant_name')
+        
+        if variant_name and self.brand:
+            variant_name = variant_name.strip().title()
+            # Check if variant name already exists for this brand
+            if VehicleVariant.objects.filter(
+                brand=self.brand, 
+                variant_name__iexact=variant_name
+            ).exists():
+                raise forms.ValidationError(
+                    f'Variant "{variant_name}" already exists for {self.brand.name}.'
+                )
+        return variant_name
+
+    def save(self, commit=True):
+        variant = super().save(commit=False)
+        if self.brand:
+            variant.brand = self.brand
+        if commit:
+            variant.save()
+        return variant
