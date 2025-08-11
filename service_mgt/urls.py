@@ -12,9 +12,9 @@ import index.views as views
 # Setup Swagger schema view
 schema_view = get_schema_view(
     openapi.Info(
-        title='API Documentation NEO TOKYO',
+        title='API Documentation Wheel Alignment Info',
         default_version='v2',
-        description="API for managing NEO TOKYO in the system",
+        description="API for managing Wheel Alignment Info in the system",
     ),
     public=True,  # Set public to True for public access
     permission_classes=(permissions.AllowAny,),  # Allow public access
