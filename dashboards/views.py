@@ -291,6 +291,7 @@ def add_variant_ajax(request, brand_id):
     
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
+
 def get_variant_details(request, variant_id):
     """Get variant details for editing (AJAX)"""
     variant = get_object_or_404(VehicleVariant, id=variant_id)
