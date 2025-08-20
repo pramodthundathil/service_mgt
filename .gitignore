@@ -1,5 +1,4 @@
 # Ignore SQLite database
-
 db.sqlite3
 
 # Ignore media files (uploaded images, documents, etc.)
