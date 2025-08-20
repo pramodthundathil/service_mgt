@@ -2,16 +2,33 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from .views import (
+    BrandReadOnlyViewSet, VehicleVariantReadOnlyViewSet, CustomerViewSet,
+    VehicleOnServiceViewSet, ServiceEntryViewSet, DashboardViewSet
+)
 
 # User router (read-only)
 user_router = DefaultRouter()
 user_router.register(r'brands', views.BrandUserViewSet, basename='brand')
 user_router.register(r'variants', views.VehicleVariantUserViewSet, basename='variant')
 
+user_router.register(r'brands', BrandReadOnlyViewSet, basename='brands')
+user_router.register(r'vehicle-variants', VehicleVariantReadOnlyViewSet, basename='vehicle-variant')
+
+# CRUD viewsets for main entities
+user_router.register(r'customers', CustomerViewSet, basename='customer')
+user_router.register(r'vehicles', VehicleOnServiceViewSet, basename='vehicle')
+user_router.register(r'services', ServiceEntryViewSet, basename='service')
+
+# Dashboard and analytics
+user_router.register(r'dashboard', DashboardViewSet, basename='dashboard')
+
+
 # Admin router (full CRUD)
 admin_router = DefaultRouter()
 admin_router.register(r'brands', views.BrandAdminViewSet, basename='admin-brand')
 admin_router.register(r'variants', views.VehicleVariantAdminViewSet, basename='admin-variant')
+
 
 urlpatterns = [
     # User endpoints (read-only)
