@@ -20,7 +20,7 @@ from .serializers import *
 class BrandUserViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only viewset for users to browse brands"""
     
-    queryset = Brand.objects.prefetch_related('vehiclevariant_set')
+    queryset = Brand.objects.prefetch_related('brand_variants')
     permission_classes = [permissions.IsAuthenticated]
     
     def get_serializer_class(self):
@@ -39,8 +39,9 @@ class BrandUserViewSet(viewsets.ReadOnlyModelViewSet):
         variants = VehicleVariant.objects.filter(brand=brand).select_related('brand')
         serializer = VehicleVariantUserSerializer(variants, many=True, context={'request': request})
         return Response(serializer.data)
+    
 
-
+    
 class VehicleVariantUserViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only viewset for users to browse vehicle variants"""
     

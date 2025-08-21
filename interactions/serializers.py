@@ -29,7 +29,7 @@ class BrandUserSerializer(serializers.ModelSerializer):
         
     def get_variants_count(self, obj):
         """Return count of variants for this brand"""
-        return obj.vehiclevariant_set.count()
+        return obj.brand_variants.count()  # Fixed: was brand_variants_set
 
 
 class VehicleVariantUserSerializer(serializers.ModelSerializer):
@@ -76,7 +76,7 @@ class BrandDetailUserSerializer(serializers.ModelSerializer):
     
     image_url = serializers.SerializerMethodField()
     variants = VehicleVariantNestedSerializer(
-        source='vehiclevariant_set', 
+        source='brand_variants',  # Fixed: was brand_variants_set
         many=True, 
         read_only=True
     )
@@ -97,9 +97,7 @@ class BrandDetailUserSerializer(serializers.ModelSerializer):
         
     def get_variants_count(self, obj):
         """Return count of variants"""
-        return obj.vehiclevariant_set.count()
-
-
+        return obj.brand_variants.count() 
 # ============= ADMIN SERIALIZERS (Full CRUD) =============
 
 class BrandAdminSerializer(serializers.ModelSerializer):
@@ -123,7 +121,7 @@ class BrandAdminSerializer(serializers.ModelSerializer):
         
     def get_variants_count(self, obj):
         """Return count of variants"""
-        return obj.vehiclevariant_set.count()
+        return obj.brand_variants_set.count()
         
     def validate(self, data):
         """Ensure at least one image source is provided"""
