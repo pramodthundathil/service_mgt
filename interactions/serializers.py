@@ -373,7 +373,7 @@ class ServiceEntrySerializer(serializers.ModelSerializer):
         model = ServiceEntry
         fields = [
             'id', 'customer', 'customer_name', 'customer_phone', 'vehicle',
-            'vehicle_number', 'vehicle_model', 'service_center', 'service_center_name',
+            'vehicle_number', 'vehicle_model','kilometer', 'service_center', 'service_center_name',
             'date_of_entry', 'service_date', 'service_type', 'service_type_display',
             'description', 'price', 'next_service_due_date', 'performed_by',
             'performed_by_name', 'days_until_next_service', 'is_overdue',

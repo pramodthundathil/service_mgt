@@ -88,6 +88,7 @@ class VehicleOnService(models.Model):  # Renamed to follow Python naming convent
     )
     vehicle_number = models.CharField(max_length=20)
     
+    
     TRANSPORT_TYPE_CHOICES = [
         ('private', 'Private'),
         ('goods_transport', 'Goods Transport'),
@@ -133,7 +134,7 @@ class ServiceEntry(models.Model):
     
     date_of_entry = models.DateTimeField(auto_now_add=True)
     service_date = models.DateField(default=timezone.now)
-    
+    kilometer = models.IntegerField( null=True, blank=True)
     WHEEL_SERVICE_CHOICES = [
         ('alignment', 'Wheel Alignment'),
         ('balancing', 'Wheel Balancing'),
