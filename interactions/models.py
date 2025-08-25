@@ -153,7 +153,10 @@ class ServiceEntry(models.Model):
     price = models.DecimalField(
         max_digits=10, 
         decimal_places=2,
-        validators=[MinValueValidator(0)]
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        default=0.0
     )
     next_service_due_date = models.DateField()
     

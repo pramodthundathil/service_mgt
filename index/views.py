@@ -19,6 +19,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['email'] = user.email
         token['id'] = user.id  # This should match 'id'
         token['phone_number'] = user.phone_number
+        token['role'] = user.role
         
         if user.service_center:
             token['service_center_id'] = user.service_center.id
