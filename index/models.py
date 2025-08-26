@@ -92,6 +92,71 @@ class ServiceCenter(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def extend_subscription(self, months=12, payment_transaction=None):
+    
+        from datetime import date, timedelta
+        from dateutil.relativedelta import relativedelta
+        
+        # Determine the start date for extension
+        if self.is_subscription_active():
+            # Extend from current subscription end date
+            start_date = self.subscription_valid_until
+            new_end_date = start_date + relativedelta(months=months)
+        elif self.is_trial_active():
+            # Extend from trial end date
+            start_date = self.trial_ends_at.date()
+            new_end_date = start_date + relativedelta(months=months)
+        else:
+            # Start from today if no active subscription/trial
+            start_date = date.today()
+            new_end_date = start_date + relativedelta(months=months)
+        
+        # Update service center subscription
+        self.subscription_valid_until = new_end_date
+        if not self.subscription_started_at:
+            self.subscription_started_at = timezone.now()
+        
+        self.save()
+        SubscriptionHistory.objects.create(
+        service_center=self,
+        payment_transaction=payment_transaction,
+        started_at=timezone.now(),
+        expires_at=timezone.datetime.combine(new_end_date, timezone.datetime.min.time()).replace(tzinfo=timezone.get_current_timezone()),
+        previous_expires_at=timezone.datetime.combine(start_date, timezone.datetime.min.time()).replace(tzinfo=timezone.get_current_timezone()) if start_date != date.today() else None,
+        plan_name="1 Year Extension",
+        amount_paid=payment_transaction.amount if payment_transaction else 0,
+        is_extension=True
+        )
+    
+        return new_end_date
+
+    def get_subscription_status(self):
+        """Get detailed subscription status"""
+        status = {
+            'can_access': self.can_access_service(),
+            'is_trial_active': self.is_trial_active(),
+            'is_subscription_active': self.is_subscription_active(),
+            'trial_ends_at': self.trial_ends_at,
+            'subscription_ends_at': self.subscription_valid_until,
+            'days_remaining': None,
+            'status_text': 'Inactive'
+        }
+        
+        if self.is_subscription_active():
+            days_remaining = (self.subscription_valid_until - date.today()).days
+            status['days_remaining'] = days_remaining
+            status['status_text'] = f'Active ({days_remaining} days remaining)'
+        elif self.is_trial_active():
+            days_remaining = (self.trial_ends_at.date() - date.today()).days
+            status['days_remaining'] = days_remaining
+            status['status_text'] = f'Trial ({days_remaining} days remaining)'
+        elif not self.is_active:
+            status['status_text'] = 'Account Disabled'
+        else:
+            status['status_text'] = 'Subscription Expired'
+        
+        return status
 
 
 class LicenseKey(models.Model):
@@ -243,3 +308,162 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.service_center.name} - {self.get_status_display()}"
+    
+
+
+
+
+
+# models.py - Add these models to your existing models.py file
+
+from django.db import models
+from django.utils import timezone
+from datetime import timedelta, date
+import uuid
+
+
+class PaymentPlan(models.Model):
+    """Model to define subscription plans"""
+    PLAN_TYPES = (
+        ('trial', 'Trial'),
+        ('yearly', 'Yearly'),
+    )
+    
+    name = models.CharField(max_length=100)
+    plan_type = models.CharField(max_length=20, choices=PLAN_TYPES)
+    duration_months = models.IntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='INR')
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Payment Plan"
+        verbose_name_plural = "Payment Plans"
+        ordering = ['price']
+
+    def __str__(self):
+        return f"{self.name} - ₹{self.price}"
+
+
+class PaymentTransaction(models.Model):
+    """Model to track all payment transactions"""
+    TRANSACTION_STATUS = (
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+        ('cancelled', 'Cancelled'),
+    )
+    
+    TRANSACTION_TYPE = (
+        ('subscription', 'Subscription Payment'),
+        ('renewal', 'Renewal Payment'),
+        ('extension', 'Extension Payment'),
+    )
+
+    transaction_id = models.CharField(max_length=100, unique=True, editable=False)
+    service_center = models.ForeignKey(
+        'ServiceCenter', 
+        on_delete=models.CASCADE, 
+        related_name='payment_transactions'
+    )
+    payment_plan = models.ForeignKey(
+        PaymentPlan, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='transactions'
+    )
+    
+    # Transaction details
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE)
+    status = models.CharField(max_length=20, choices=TRANSACTION_STATUS, default='pending')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='INR')
+    
+    # Razorpay fields
+    razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True, null=True)
+    
+    # Additional tracking
+    initiated_by = models.ForeignKey(
+        'CustomUser', 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='initiated_transactions'
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    
+    # Failure tracking
+    failure_reason = models.TextField(blank=True, null=True)
+    retry_count = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Payment Transaction"
+        verbose_name_plural = "Payment Transactions"
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.transaction_id:
+            self.transaction_id = f"TXN_{uuid.uuid4().hex[:12].upper()}"
+        
+        if self.status == 'completed' and not self.completed_at:
+            self.completed_at = timezone.now()
+            
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.transaction_id} - {self.service_center.name} - ₹{self.amount}"
+
+
+class SubscriptionHistory(models.Model):
+    """Model to track subscription history and changes"""
+    service_center = models.ForeignKey(
+        'ServiceCenter', 
+        on_delete=models.CASCADE, 
+        related_name='subscription_history'
+    )
+    payment_transaction = models.ForeignKey(
+        PaymentTransaction, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='subscription_changes'
+    )
+    
+    # Subscription period
+    started_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    previous_expires_at = models.DateTimeField(blank=True, null=True)
+    
+    # Details
+    plan_name = models.CharField(max_length=100)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_trial = models.BooleanField(default=False)
+    is_extension = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Subscription History"
+        verbose_name_plural = "Subscription History"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.service_center.name} - {self.plan_name} ({self.started_at.date()} to {self.expires_at.date()})"
+
+
+# Update your existing ServiceCenter model with these additional methods:
+# Add this method to your ServiceCenter model
+
+
+
+# Add these methods to your ServiceCenter model by copying them into the class

@@ -51,6 +51,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'index.middleware.SubscriptionAccessMiddleware'
 ]
 
 ROOT_URLCONF = 'service_mgt.urls'
@@ -249,6 +250,25 @@ GOOGLE_CLIENT_ID = ""
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+from decouple import config
+
+# Razorpay Configuration
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='rzp_test_9tCOZuKLhiZdaM')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='IfMivqkfXWvuJi2IR10W4bzN')
+
+RAZOR_KEY_ID = "rzp_test_9tCOZuKLhiZdaM"
+RAZOR_KEY_SECRET = "IfMivqkfXWvuJi2IR10W4bzN"
+# For testing, use Razorpay test keys
+# RAZORPAY_KEY_ID = 'rzp_test_xxxxxxxxxx'
+# RAZORPAY_KEY_SECRET = 'your_test_secret_key'
+
+# Payment Configuration
+PAYMENT_SETTINGS = {
+    'YEARLY_EXTENSION_PRICE': 1499.00,
+    'TRIAL_DURATION_DAYS': 15,
+    'DEFAULT_CURRENCY': 'INR',
+}
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [

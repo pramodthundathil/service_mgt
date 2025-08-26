@@ -8,6 +8,8 @@ from django.utils import timezone
 from datetime import timedelta, date
 from .models import ServiceCenter, CustomUser, LicenseKey, Subscription
 from .utils import generate_license_key  # Assuming you have this utility function
+from django.db import models
+
 
 
 class ServiceCenterRegistrationSerializer(serializers.ModelSerializer):
@@ -511,3 +513,265 @@ class ErrorResponseSerializer(serializers.Serializer):
         required=False,
         help_text="Detailed error information"
     )
+
+
+# payment_serializers.py - Add these to your existing serializers.py file
+
+from rest_framework import serializers
+from django.utils import timezone
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
+from .models import PaymentPlan, PaymentTransaction, SubscriptionHistory, ServiceCenter
+import razorpay
+from django.conf import settings
+
+
+class PaymentPlanSerializer(serializers.ModelSerializer):
+    """Serializer for payment plans"""
+    
+    class Meta:
+        model = PaymentPlan
+        fields = [
+            'id', 'name', 'plan_type', 'duration_months', 'price', 
+            'currency', 'is_active', 'description', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+
+
+class CreatePaymentOrderSerializer(serializers.Serializer):
+    """Serializer for creating Razorpay order"""
+    
+    amount = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        help_text="Amount to be paid (₹1499 for 1 year extension)"
+    )
+    currency = serializers.CharField(
+        default='INR',
+        help_text="Payment currency (INR)"
+    )
+    
+    def validate_amount(self, value):
+        """Validate payment amount"""
+        if value != 1499.00:
+            raise serializers.ValidationError("Invalid amount. 1 year extension costs ₹1499")
+        return value
+    
+    def validate(self, attrs):
+        """Validate user's service center access"""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("User must be authenticated")
+        
+        user = request.user
+        if user.role not in ['centeradmin', 'admin']:
+            raise serializers.ValidationError("Only center admin can initiate payments")
+        
+        if user.role == 'centeradmin' and not user.service_center:
+            raise serializers.ValidationError("User must be associated with a service center")
+        
+        return attrs
+
+
+class PaymentVerificationSerializer(serializers.Serializer):
+    """Serializer for Razorpay payment verification"""
+    
+    razorpay_payment_id = serializers.CharField(
+        max_length=100,
+        help_text="Razorpay payment ID received after successful payment"
+    )
+    razorpay_order_id = serializers.CharField(
+        max_length=100,
+        help_text="Razorpay order ID"
+    )
+    razorpay_signature = serializers.CharField(
+        max_length=255,
+        help_text="Razorpay signature for payment verification"
+    )
+    
+    def validate(self, attrs):
+        """Verify Razorpay payment signature"""
+        try:
+            # Initialize Razorpay client
+            client = razorpay.Client(
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+            )
+            
+            # Verify payment signature
+            params = {
+                'razorpay_payment_id': attrs['razorpay_payment_id'],
+                'razorpay_order_id': attrs['razorpay_order_id'],
+                'razorpay_signature': attrs['razorpay_signature']
+            }
+            
+            client.utility.verify_payment_signature(params)
+            
+        except Exception as e:
+            raise serializers.ValidationError(f"Payment verification failed: {str(e)}")
+        
+        return attrs
+
+
+class PaymentTransactionSerializer(serializers.ModelSerializer):
+    """Serializer for payment transactions"""
+    
+    service_center_name = serializers.CharField(
+        source='service_center.name',
+        read_only=True
+    )
+    payment_plan_name = serializers.CharField(
+        source='payment_plan.name',
+        read_only=True
+    )
+    initiated_by_email = serializers.EmailField(
+        source='initiated_by.email',
+        read_only=True
+    )
+    
+    class Meta:
+        model = PaymentTransaction
+        fields = [
+            'id', 'transaction_id', 'service_center', 'service_center_name',
+            'payment_plan', 'payment_plan_name', 'transaction_type', 'status',
+            'amount', 'currency', 'razorpay_order_id', 'razorpay_payment_id',
+            'razorpay_signature', 'initiated_by_email', 'created_at',
+            'updated_at', 'completed_at', 'failure_reason'
+        ]
+        read_only_fields = [
+            'transaction_id', 'service_center_name', 'payment_plan_name',
+            'initiated_by_email', 'created_at', 'updated_at', 'completed_at'
+        ]
+
+
+class SubscriptionHistorySerializer(serializers.ModelSerializer):
+    """Serializer for subscription history"""
+    
+    service_center_name = serializers.CharField(
+        source='service_center.name',
+        read_only=True
+    )
+    transaction_id = serializers.CharField(
+        source='payment_transaction.transaction_id',
+        read_only=True
+    )
+    
+    class Meta:
+        model = SubscriptionHistory
+        fields = [
+            'id', 'service_center_name', 'transaction_id', 'started_at',
+            'expires_at', 'previous_expires_at', 'plan_name', 'amount_paid',
+            'is_trial', 'is_extension', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+
+
+class SubscriptionStatusSerializer(serializers.Serializer):
+    """Serializer for subscription status response"""
+    
+    can_access = serializers.BooleanField(
+        help_text="Whether the service center can access the application"
+    )
+    is_trial_active = serializers.BooleanField(
+        help_text="Whether trial period is active"
+    )
+    is_subscription_active = serializers.BooleanField(
+        help_text="Whether paid subscription is active"
+    )
+    trial_ends_at = serializers.DateTimeField(
+        help_text="When trial period ends"
+    )
+    subscription_ends_at = serializers.DateField(
+        help_text="When subscription ends"
+    )
+    days_remaining = serializers.IntegerField(
+        help_text="Days remaining in current subscription/trial"
+    )
+    status_text = serializers.CharField(
+        help_text="Human readable status text"
+    )
+    requires_payment = serializers.BooleanField(
+        help_text="Whether payment is required to continue service"
+    )
+
+
+class ExtendSubscriptionResponseSerializer(serializers.Serializer):
+    """Serializer for subscription extension response"""
+    
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+    data = serializers.DictField(
+        child=serializers.CharField(),
+        help_text="Extended subscription details"
+    )
+    subscription_status = SubscriptionStatusSerializer()
+
+
+class PaymentOrderResponseSerializer(serializers.Serializer):
+    """Serializer for payment order creation response"""
+    
+    success = serializers.BooleanField()
+    data = serializers.DictField(
+        child=serializers.CharField(),
+        help_text="Razorpay order details"
+    )
+    order_id = serializers.CharField(
+        help_text="Razorpay order ID"
+    )
+    amount = serializers.IntegerField(
+        help_text="Amount in smallest currency unit (paise)"
+    )
+    currency = serializers.CharField(
+        help_text="Currency code"
+    )
+    key_id = serializers.CharField(
+        help_text="Razorpay key ID for frontend integration"
+    )
+
+
+class PaymentDashboardSerializer(serializers.Serializer):
+    """Serializer for payment dashboard statistics"""
+    
+    total_revenue = serializers.DecimalField(max_digits=15, decimal_places=2)
+    monthly_revenue = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_transactions = serializers.IntegerField()
+    successful_transactions = serializers.IntegerField()
+    failed_transactions = serializers.IntegerField()
+    active_subscriptions = serializers.IntegerField()
+    trial_centers = serializers.IntegerField()
+    expired_centers = serializers.IntegerField()
+    recent_transactions = PaymentTransactionSerializer(many=True)
+
+
+class ServiceCenterPaymentStatusSerializer(serializers.ModelSerializer):
+    """Enhanced service center serializer with payment status"""
+    
+    subscription_status = serializers.SerializerMethodField()
+    recent_transactions = serializers.SerializerMethodField()
+    total_paid = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ServiceCenter
+        fields = [
+            'id', 'name', 'email', 'license_key', 'is_active',
+            'trial_ends_at', 'subscription_valid_until',
+            'subscription_status', 'recent_transactions', 'total_paid'
+        ]
+    
+    def get_subscription_status(self, obj):
+        """Get subscription status"""
+        return obj.get_subscription_status()
+    
+    def get_recent_transactions(self, obj):
+        """Get recent payment transactions"""
+        transactions = obj.payment_transactions.filter(
+            status='completed'
+        ).order_by('-completed_at')[:3]
+        return PaymentTransactionSerializer(transactions, many=True).data
+    
+    def get_total_paid(self, obj):
+        """Get total amount paid by service center"""
+        return obj.payment_transactions.filter(
+            status='completed'
+        ).aggregate(
+            total=models.Sum('amount')
+        )['total'] or 0

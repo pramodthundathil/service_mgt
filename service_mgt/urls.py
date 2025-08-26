@@ -25,6 +25,7 @@ urlpatterns = [
     path("",include("dashboards.urls")),
     path("api/", include("index.urls")),
     path('interaction/',include('interactions.urls')),
+    path("subscription/",include('index.payment_urls')),
     # Swagger URLs
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     # Token authentication
