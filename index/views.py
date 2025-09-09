@@ -1521,3 +1521,432 @@ def check_access_permission(request):
         'subscription_status': service_center.get_subscription_status()
     }, status=status.HTTP_200_OK)
         
+
+
+
+
+
+# user management serilaizers 
+
+# views.py - Complete implementation
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from django.db.models import Q, Count
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+import logging
+
+from .models import ServiceCenter, CustomUser
+from .serializers import (
+    AutoServiceCenterUserRegistrationSerializer,
+    ChangePasswordSerializer, 
+    UserListSerializer,
+    UserRegistrationSerializer  # Your existing serializer
+)
+from .permissions import (
+    CanManageServiceCenterUsers,
+    CanChangeUserPassword,
+    IsAdmin,
+    IsCenterAdmin
+)
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
+
+class UserManagementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing custom users with automatic service center identification
+    - Center Admins: Can manage staff in their service center
+    - Staff: Can view their own profile only
+    """
+    permission_classes = [CanManageServiceCenterUsers]
+    
+    def get_queryset(self):
+        """Filter users based on requester's role and permissions"""
+        user = self.request.user
+        
+        if user.role == 'admin':
+            # Super admin can see all users
+            return User.objects.all().select_related('service_center').order_by('-date_joined')
+        
+        elif user.role == 'centeradmin':
+            # Center admin can see users from their service center only
+            if user.service_center:
+                return User.objects.filter(
+                    service_center=user.service_center
+                ).select_related('service_center').order_by('-date_joined')
+            else:
+                return User.objects.none()
+        
+        else:
+            # Staff can only see themselves
+            return User.objects.filter(id=user.id).select_related('service_center')
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action"""
+        if self.action == 'create':
+            return AutoServiceCenterUserRegistrationSerializer
+        elif self.action == 'change_password':
+            return ChangePasswordSerializer
+        return UserListSerializer
+    
+    def list(self, request, *args, **kwargs):
+        """List users with pagination and filtering"""
+        queryset = self.get_queryset()
+        
+        # Add filtering options
+        is_active = request.query_params.get('is_active')
+        role = request.query_params.get('role')
+        
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        
+        if role:
+            queryset = queryset.filter(role=role)
+        
+        # Paginate results
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'count': queryset.count(),
+            'results': serializer.data
+        })
+    
+    def create(self, request, *args, **kwargs):
+        """Create a new staff user - service center is automatically assigned"""
+        # Check if user can create staff
+        if request.user.role == 'staff':
+            return Response({
+                'error': 'Staff members cannot create new users'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Center admin validations
+        if request.user.role == 'centeradmin':
+            if not request.user.service_center:
+                return Response({
+                    'error': 'You are not assigned to any service center'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not request.user.service_center.can_access_service():
+                return Response({
+                    'error': 'Your service center subscription has expired'
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            try:
+                user = serializer.save()
+                logger.info(f"Staff user {user.email} created by {request.user.email} for service center {user.service_center.name if user.service_center else 'None'}")
+                
+                response_serializer = UserListSerializer(user)
+                return Response({
+                    'message': 'Staff user created successfully',
+                    'user': response_serializer.data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                logger.error(f"Error creating user: {str(e)}")
+                return Response({
+                    'error': 'Failed to create user. Please try again.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Get a specific user"""
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({
+                'error': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def update(self, request, *args, **kwargs):
+        """Update user information (limited fields)"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Prevent role changes through this endpoint
+        if 'role' in request.data:
+            request.data.pop('role')
+        
+        # Prevent service_center changes for center admins
+        if request.user.role == 'centeradmin' and 'service_center' in request.data:
+            request.data.pop('service_center')
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            serializer.save()
+            logger.info(f"User {instance.email} updated by {request.user.email}")
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Delete a user with proper permissions check"""
+        target_user = self.get_object()
+        
+        # Prevent self-deletion
+        if request.user == target_user:
+            return Response({
+                'error': 'You cannot delete your own account'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Center admin cannot delete other center admins
+        if (request.user.role == 'centeradmin' and 
+            target_user.role == 'centeradmin'):
+            return Response({
+                'error': 'Center admins cannot delete other center admins'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Log the deletion
+        logger.info(f"User {target_user.email} deleted by {request.user.email}")
+        
+        # Store user info before deletion
+        deleted_user_info = {
+            'id': target_user.id,
+            'email': target_user.email,
+            'username': target_user.username,
+            'role': target_user.role,
+            'service_center': target_user.service_center.name if target_user.service_center else None
+        }
+        
+        try:
+            target_user.delete()
+            return Response({
+                'message': 'User deleted successfully',
+                'deleted_user': deleted_user_info
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error deleting user {target_user.id}: {str(e)}")
+            return Response({
+                'error': 'Failed to delete user'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['post'], url_path='change-password', 
+            permission_classes=[CanChangeUserPassword])
+    def change_password(self, request, pk=None):
+        """Change password for a specific user"""
+        target_user = self.get_object()
+        
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={'request': request, 'target_user': target_user}
+        )
+        
+        if serializer.is_valid():
+            try:
+                # Set new password
+                target_user.set_password(serializer.validated_data['new_password'])
+                target_user.save(update_fields=['password'])
+                
+                logger.info(f"Password changed for user {target_user.email} by {request.user.email}")
+                
+                return Response({
+                    'message': 'Password changed successfully'
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                logger.error(f"Error changing password for user {target_user.id}: {str(e)}")
+                return Response({
+                    'error': 'Failed to change password'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'])
+    def my_profile(self, request):
+        """Get current user's profile"""
+        serializer = UserListSerializer(request.user)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """Toggle user active status"""
+        target_user = self.get_object()
+        
+        # Prevent self-deactivation
+        if request.user == target_user:
+            return Response({
+                'error': 'You cannot deactivate your own account'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            target_user.is_active = not target_user.is_active
+            target_user.save(update_fields=['is_active'])
+            
+            action = 'activated' if target_user.is_active else 'deactivated'
+            logger.info(f"User {target_user.email} {action} by {request.user.email}")
+            
+            return Response({
+                'message': f'User {action} successfully',
+                'is_active': target_user.is_active
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error toggling user {target_user.id} status: {str(e)}")
+            return Response({
+                'error': 'Failed to update user status'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get user statistics for the current user's service center"""
+        queryset = self.get_queryset()
+        
+        # Get service center info
+        service_center = None
+        if request.user.role == 'centeradmin':
+            service_center = request.user.service_center
+        
+        stats = {
+            'service_center': {
+                'id': service_center.id if service_center else None,
+                'name': service_center.name if service_center else 'All Service Centers',
+                'subscription_status': service_center.get_subscription_status() if service_center else None
+            },
+            'users': {
+                'total_users': queryset.count(),
+                'active_users': queryset.filter(is_active=True).count(),
+                'inactive_users': queryset.filter(is_active=False).count(),
+                'by_role': {
+                    'admin': queryset.filter(role='admin').count(),
+                    'centeradmin': queryset.filter(role='centeradmin').count(),
+                    'staff': queryset.filter(role='staff').count(),
+                }
+            }
+        }
+        
+        return Response(stats, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'])
+    def my_service_center_users(self, request):
+        """Get all users in the current user's service center"""
+        if request.user.role not in ['admin', 'centeradmin']:
+            return Response({
+                'error': 'Only admins and center admins can view service center users'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        queryset = self.get_queryset()
+        serializer = UserListSerializer(queryset, many=True)
+        
+        return Response({
+            'service_center': {
+                'id': request.user.service_center.id if request.user.service_center else None,
+                'name': request.user.service_center.name if request.user.service_center else 'All Service Centers'
+            },
+            'users': serializer.data,
+            'count': queryset.count()
+        }, status=status.HTTP_200_OK)
+
+
+class AdminServiceCenterUserViewSet(viewsets.ModelViewSet):
+    """
+    Special ViewSet for Super Admin to manage users across all service centers
+    """
+    permission_classes = [IsAdmin]
+    serializer_class = UserListSerializer
+    
+    def get_queryset(self):
+        return User.objects.all().select_related('service_center').order_by('-date_joined')
+    
+    def get_serializer_class(self):
+        if self.action in ['create_for_service_center']:
+            return UserRegistrationSerializer  # Uses your original serializer with service_center_id
+        return UserListSerializer
+    
+    @action(detail=False, methods=['post'])
+    def create_for_service_center(self, request):
+        """Create user for specific service center (Admin only)"""
+        serializer = UserRegistrationSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            try:
+                user = serializer.save()
+                logger.info(f"User {user.email} created by admin {request.user.email} for service center {user.service_center.name if user.service_center else 'None'}")
+                
+                response_serializer = UserListSerializer(user)
+                return Response({
+                    'message': 'User created successfully',
+                    'user': response_serializer.data
+                }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                logger.error(f"Error creating user by admin: {str(e)}")
+                return Response({
+                    'error': 'Failed to create user'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'])
+    def by_service_center(self, request):
+        """Get users grouped by service center"""
+        try:
+            service_centers = ServiceCenter.objects.annotate(
+                user_count=Count('users')
+            ).prefetch_related('users').order_by('name')
+            
+            result = []
+            for sc in service_centers:
+                users = UserListSerializer(sc.users.all(), many=True).data
+                result.append({
+                    'service_center': {
+                        'id': sc.id,
+                        'name': sc.name,
+                        'email': sc.email,
+                        'is_active': sc.is_active,
+                        'subscription_status': sc.get_subscription_status()
+                    },
+                    'user_count': sc.user_count,
+                    'users': users
+                })
+            
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error getting users by service center: {str(e)}")
+            return Response({
+                'error': 'Failed to fetch data'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def all_stats(self, request):
+        """Get comprehensive statistics for all service centers"""
+        try:
+            total_users = User.objects.count()
+            active_users = User.objects.filter(is_active=True).count()
+            
+            # Stats by role
+            role_stats = {
+                'admin': User.objects.filter(role='admin').count(),
+                'centeradmin': User.objects.filter(role='centeradmin').count(),
+                'staff': User.objects.filter(role='staff').count(),
+            }
+            
+            # Stats by service center
+            service_center_stats = ServiceCenter.objects.annotate(
+                user_count=Count('users'),
+                active_user_count=Count('users', filter=Q(users__is_active=True))
+            ).values('id', 'name', 'user_count', 'active_user_count', 'is_active')
+            
+            return Response({
+                'overall': {
+                    'total_users': total_users,
+                    'active_users': active_users,
+                    'inactive_users': total_users - active_users,
+                    'by_role': role_stats
+                },
+                'service_centers': list(service_center_stats)
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error getting all stats: {str(e)}")
+            return Response({
+                'error': 'Failed to fetch statistics'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

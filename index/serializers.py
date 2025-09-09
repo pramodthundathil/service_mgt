@@ -541,6 +541,362 @@ class ErrorResponseSerializer(serializers.Serializer):
         help_text="Detailed error information"
     )
 
+# serializers.py - Add these to your existing serializers
+
+from rest_framework import serializers
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+from .models import ServiceCenter
+
+User = get_user_model()
+
+class AutoServiceCenterUserRegistrationSerializer(serializers.ModelSerializer):
+    """
+    Modified registration serializer that automatically assigns service center
+    Based on the logged-in user's service center - No need for service_center_id input
+    """
+    password = serializers.CharField(
+        write_only=True, 
+        min_length=8,
+        help_text="Password for the new user (minimum 8 characters)",
+        style={'input_type': 'password'}
+    )
+    confirm_password = serializers.CharField(
+        write_only=True, 
+        min_length=8,
+        help_text="Confirm the password",
+        style={'input_type': 'password'}
+    )
+    service_center_name = serializers.CharField(source='service_center.name', read_only=True)
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'phone_number', 'username',
+            'password', 'confirm_password', 'is_active', 
+            'date_joined', 'service_center', 'service_center_name',
+            'role', 'role_display'
+        ]
+        read_only_fields = [
+            'id', 'date_joined', 'service_center', 'service_center_name',
+            'role', 'role_display'
+        ]
+        extra_kwargs = {
+            'email': {
+                'help_text': 'Email address for the new user (must be unique)'
+            },
+            'phone_number': {
+                'help_text': 'Phone number in international format'
+            },
+            'username': {
+                'help_text': 'Username for the new staff member',
+                'required': False
+            },
+            'is_active': {
+                'help_text': 'Whether the user account is active',
+                'default': True
+            }
+        }
+
+    def validate(self, attrs):
+        """Custom validation for user registration"""
+        if attrs['password'] != attrs['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match")
+        
+        try:
+            validate_password(attrs['password'])
+        except ValidationError as e:
+            raise serializers.ValidationError({"password": e.messages})
+        
+        # Check if the requesting user's service center is valid
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Authentication required")
+        
+        request_user = request.user
+        
+        # Validate based on user role
+        if request_user.role == 'centeradmin':
+            if not request_user.service_center:
+                raise serializers.ValidationError("You are not assigned to any service center")
+            
+            if not request_user.service_center.can_access_service():
+                raise serializers.ValidationError("Your service center access is not active")
+        
+        elif request_user.role == 'staff':
+            raise serializers.ValidationError("Staff members cannot create new users")
+        
+        return attrs
+
+    def validate_email(self, value):
+        """Validate email uniqueness"""
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email already exists")
+        return value
+
+    def validate_phone_number(self, value):
+        """Validate phone number format and uniqueness"""
+        # Check if phone number already exists
+        if User.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError("User with this phone number already exists")
+        return value
+
+    def create(self, validated_data):
+        """Create new user and automatically assign service center"""
+        validated_data.pop('confirm_password')
+        password = validated_data.pop('password')
+        
+        request = self.context.get('request')
+        request_user = request.user if request else None
+        
+        if not request_user:
+            raise serializers.ValidationError("Authentication required")
+        
+        # Automatically assign service center based on requester
+        if request_user.role == 'admin':
+            # Admin can create users but service center should be specified separately
+            # For this serializer, we don't assign service center for admin
+            service_center = None
+        else:
+            # Center admin - automatically assign their service center
+            service_center = request_user.service_center
+        
+        # Auto-generate username if not provided
+        if not validated_data.get('username'):
+            email = validated_data['email']
+            username = email.split('@')[0]
+            
+            # Ensure unique username
+            counter = 1
+            original_username = username
+            while User.objects.filter(username=username).exists():
+                username = f"{original_username}{counter}"
+                counter += 1
+            validated_data['username'] = username
+        
+        # Validate username uniqueness if provided
+        elif User.objects.filter(username=validated_data['username']).exists():
+            raise serializers.ValidationError({
+                'username': 'User with this username already exists'
+            })
+        
+        # Create the user with staff role
+        try:
+            user = User.objects.create_user(
+                password=password,
+                service_center=service_center,
+                role='staff',  # Always create staff users
+                **validated_data
+            )
+            return user
+        except Exception as e:
+            raise serializers.ValidationError(f"Failed to create user: {str(e)}")
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer for changing user password"""
+    old_password = serializers.CharField(
+        required=False, 
+        write_only=True,
+        help_text="Current password (required when changing own password)"
+    )
+    new_password = serializers.CharField(
+        write_only=True, 
+        min_length=8,
+        help_text="New password (minimum 8 characters)"
+    )
+    confirm_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        help_text="Confirm new password"
+    )
+    
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError("New passwords don't match")
+        return attrs
+    
+    def validate_new_password(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return value
+    
+    def validate_old_password(self, value):
+        request = self.context.get('request')
+        target_user = self.context.get('target_user')
+        
+        if not request or not request.user:
+            raise serializers.ValidationError("Authentication required")
+        
+        user = request.user
+        
+        # If changing own password, old password is required and must be correct
+        if user == target_user:
+            if not value:
+                raise serializers.ValidationError("Old password is required when changing your own password")
+            if not user.check_password(value):
+                raise serializers.ValidationError("Old password is incorrect")
+        return value
+
+class UserListSerializer(serializers.ModelSerializer):
+    """Serializer for listing users with minimal information"""
+    service_center_name = serializers.CharField(source='service_center.name', read_only=True)
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'phone_number', 'role', 'role_display',
+            'service_center', 'service_center_name', 'is_active', 
+            'date_joined', 'last_login', 'full_name'
+        ]
+        read_only_fields = [
+            'id', 'date_joined', 'last_login', 'service_center_name', 
+            'role_display', 'full_name'
+        ]
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """Detailed serializer for user profile with more information"""
+    service_center_name = serializers.CharField(source='service_center.name', read_only=True)
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    service_center_details = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'phone_number', 'role', 'role_display',
+            'service_center', 'service_center_name', 'service_center_details',
+            'is_active', 'is_staff', 'date_joined', 'last_login', 'full_name'
+        ]
+        read_only_fields = [
+            'id', 'date_joined', 'last_login', 'service_center_name', 
+            'role_display', 'full_name', 'service_center_details', 'is_staff'
+        ]
+    
+    def get_service_center_details(self, obj):
+        """Get detailed service center information"""
+        if obj.service_center:
+            return {
+                'id': obj.service_center.id,
+                'name': obj.service_center.name,
+                'email': obj.service_center.email,
+                'phone': obj.service_center.phone,
+                'address': obj.service_center.address,
+                'is_active': obj.service_center.is_active,
+                'subscription_status': obj.service_center.get_subscription_status()
+            }
+        return None
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating user information (limited fields)"""
+    
+    class Meta:
+        model = User
+        fields = [
+            'username', 'email', 'phone_number', 'is_active'
+        ]
+    
+    def validate_email(self, value):
+        """Validate email uniqueness (excluding current user)"""
+        if self.instance and self.instance.email != value:
+            if User.objects.filter(email=value).exists():
+                raise serializers.ValidationError("User with this email already exists")
+        return value
+    
+    def validate_phone_number(self, value):
+        """Validate phone number uniqueness (excluding current user)"""
+        if self.instance and self.instance.phone_number != value:
+            if User.objects.filter(phone_number=value).exists():
+                raise serializers.ValidationError("User with this phone number already exists")
+        return value
+    
+    def validate_username(self, value):
+        """Validate username uniqueness (excluding current user)"""
+        if self.instance and self.instance.username != value:
+            if User.objects.filter(username=value).exists():
+                raise serializers.ValidationError("User with this username already exists")
+        return value
+
+# Bulk operations serializer (optional)
+class BulkUserCreateSerializer(serializers.Serializer):
+    """Serializer for bulk user creation"""
+    users = serializers.ListField(
+        child=AutoServiceCenterUserRegistrationSerializer(),
+        min_length=1,
+        max_length=50,  # Limit bulk operations
+        help_text="List of users to create (max 50 at once)"
+    )
+    
+    def create(self, validated_data):
+        """Create multiple users at once"""
+        users_data = validated_data['users']
+        created_users = []
+        errors = []
+        
+        for i, user_data in enumerate(users_data):
+            try:
+                serializer = AutoServiceCenterUserRegistrationSerializer(
+                    data=user_data,
+                    context=self.context
+                )
+                if serializer.is_valid():
+                    user = serializer.save()
+                    created_users.append(user)
+                else:
+                    errors.append({
+                        'index': i,
+                        'email': user_data.get('email'),
+                        'errors': serializer.errors
+                    })
+            except Exception as e:
+                errors.append({
+                    'index': i,
+                    'email': user_data.get('email'),
+                    'errors': str(e)
+                })
+        
+        return {
+            'created_users': created_users,
+            'errors': errors,
+            'success_count': len(created_users),
+            'error_count': len(errors)
+        }
+
+# Usage example for the serializers
+"""
+# In your views.py, update the get_serializer_class method:
+
+def get_serializer_class(self):
+    if self.action == 'create':
+        return AutoServiceCenterUserRegistrationSerializer
+    elif self.action == 'change_password':
+        return ChangePasswordSerializer
+    elif self.action in ['update', 'partial_update']:
+        return UserUpdateSerializer
+    elif self.action == 'retrieve':
+        return UserDetailSerializer
+    elif self.action == 'list':
+        return UserListSerializer
+    return UserListSerializer
+
+# For bulk operations, you can add this action to your viewset:
+@action(detail=False, methods=['post'])
+def bulk_create(self, request):
+    serializer = BulkUserCreateSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        result = serializer.save()
+        return Response({
+            'message': f'Bulk creation completed. {result["success_count"]} users created, {result["error_count"]} errors.',
+            'created_users': UserListSerializer(result['created_users'], many=True).data,
+            'errors': result['errors']
+        }, status=status.HTTP_201_CREATED if result['created_users'] else status.HTTP_400_BAD_REQUEST)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+"""
 
 
 # serializers.py
