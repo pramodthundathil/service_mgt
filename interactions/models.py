@@ -135,6 +135,7 @@ class ServiceEntry(models.Model):
     date_of_entry = models.DateTimeField(auto_now_add=True)
     service_date = models.DateField(default=timezone.now)
     kilometer = models.IntegerField( null=True, blank=True)
+    next_kilometer = models.IntegerField()
     WHEEL_SERVICE_CHOICES = [
         ('alignment', 'Wheel Alignment'),
         ('balancing', 'Wheel Balancing'),

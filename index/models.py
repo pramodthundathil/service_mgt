@@ -471,3 +471,49 @@ class SubscriptionHistory(models.Model):
 
 
 # Add these methods to your ServiceCenter model by copying them into the class
+
+
+
+
+# models.py - Add this model to track SMS logs
+
+
+from interactions.models import VehicleOnService,ServiceEntry, Customer
+
+class SMSLog(models.Model):
+    SMS_TYPE_CHOICES = [
+        ('service_reminder', 'Service Reminder'),
+        ('payment_reminder', 'Payment Reminder'),
+        ('promotional', 'Promotional'),
+        ('other', 'Other'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+        ('pending', 'Pending'),
+    ]
+    
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='sms_logs')
+    vehicle = models.ForeignKey(VehicleOnService, on_delete=models.CASCADE, related_name='sms_logs', null=True, blank=True)
+    service_center = models.ForeignKey(ServiceCenter, on_delete=models.CASCADE, related_name='sms_logs')
+    service_entry = models.ForeignKey(ServiceEntry, on_delete=models.CASCADE, related_name='sms_logs', null=True, blank=True)
+    
+    phone_number = models.CharField(max_length=15)
+    message = models.TextField()
+    sms_type = models.CharField(max_length=20, choices=SMS_TYPE_CHOICES, default='service_reminder')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    error_message = models.TextField(blank=True, null=True)
+    
+    sent_at = models.DateTimeField(auto_now_add=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-sent_at']
+        verbose_name = 'SMS Log'
+        verbose_name_plural = 'SMS Logs'
+    
+    def __str__(self):
+        return f"{self.sms_type} to {self.customer.name} - {self.status}"
+
+

@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import timedelta
 import os 
 from django.contrib.messages import constants as messages 
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -283,3 +284,16 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# SMS Configuration
+SMS_API_KEY = 'your-sms-provider-api-key'
+SMS_SENDER_ID = 'YourServiceCenter'  # Max 6 characters for promotional SMS
+SMS_API_URL = 'https://your-sms-provider.com/api/send'  # Your SMS provider's API URL
+
+# Celery Configuration (if using Celery for background tasks)
+CELERY_BEAT_SCHEDULE = {
+    'send-daily-service-reminders': {
+        'task': 'myapp.tasks.send_daily_service_reminders',
+        'schedule': crontab(hour=9, minute=0),  # Run daily at 9 AM
+    },
+}
