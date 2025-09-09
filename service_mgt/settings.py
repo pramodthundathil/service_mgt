@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-1-vvy=taumw1%s563qj(92i@6f9%zw5@s*yxd4$+j@)tb6^^8x'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
@@ -171,7 +171,7 @@ AUTH_USER_MODEL = 'index.CustomUser'
 # ]
 
 AUTHENTICATION_BACKENDS = (
-    'social_core.backends.google.GoogleOAuth2',  # Google OAuth2 Backend
+    # 'social_core.backends.google.GoogleOAuth2',  # Google OAuth2 Backend
     'django.contrib.auth.backends.ModelBackend', # Default backend
 )
 
