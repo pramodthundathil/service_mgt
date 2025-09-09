@@ -53,7 +53,8 @@ from .serializers import (
     ServiceCenterUpdateSerializer,
     SubscriptionSerializer,
     UserRegistrationSerializer,
-    LicenseKeySerializer
+    LicenseKeySerializer,
+    SMSFrequencyUpdateSerializer,
 )
 
 
@@ -241,6 +242,101 @@ class ServiceCenterDetailView(generics.RetrieveUpdateDestroyAPIView):
         else:
             # Staff can only view their own service center
             return get_object_or_404(ServiceCenter, id=user.service_center.id)
+
+
+
+class SMSFrequencyUpdateView(generics.UpdateAPIView):
+    """
+    API endpoint for updating SMS frequency settings of a service center
+    """
+    serializer_class = SMSFrequencyUpdateSerializer
+    permission_classes = [IsAuthenticated, IsCenterAdmin]
+    http_method_names = ['patch', 'put']  # Allow both partial and full updates
+
+    @swagger_auto_schema(
+        operation_description="Update SMS frequency settings for a service center",
+        operation_summary="Update SMS Frequency Settings",
+        request_body=SMSFrequencyUpdateSerializer,
+        responses={
+            200: openapi.Response(
+                description="SMS frequency updated successfully",
+                schema=SMSFrequencyUpdateSerializer
+            ),
+            400: openapi.Response(
+                description="Bad request - Invalid frequency values",
+                examples={
+                    "application/json": {
+                        "sms_frequency_for_private_vehicles": [
+                            "SMS frequency for private vehicles must be between 1 and 12 months"
+                        ]
+                    }
+                }
+            ),
+            403: openapi.Response(
+                description="Permission denied",
+                examples={
+                    "application/json": {
+                        "detail": "You do not have permission to perform this action."
+                    }
+                }
+            ),
+            404: openapi.Response(
+                description="Service center not found",
+                examples={
+                    "application/json": {
+                        "detail": "Not found."
+                    }
+                }
+            )
+        },
+        tags=['Service Centers']
+    )
+    def update(self, request, *args, **kwargs):
+        """Handle full update"""
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially update SMS frequency settings for a service center",
+        operation_summary="Partial Update SMS Frequency Settings",
+        request_body=SMSFrequencyUpdateSerializer,
+        responses={
+            200: openapi.Response(
+                description="SMS frequency updated successfully",
+                schema=SMSFrequencyUpdateSerializer
+            ),
+            400: openapi.Response(description="Bad request"),
+            403: openapi.Response(description="Permission denied"),
+            404: openapi.Response(description="Service center not found")
+        },
+        tags=['Service Centers']
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """Handle partial update"""
+        return super().partial_update(request, *args, **kwargs)
+
+    def get_object(self):
+        """Get the service center object based on user role"""
+        user = self.request.user
+        service_center_id = self.kwargs.get('pk')
+        
+        if user.role == 'admin':
+            # Super admin can update any service center
+            return get_object_or_404(ServiceCenter, id=service_center_id)
+        elif user.role == 'centeradmin':
+            # Center admin can only update their own service center
+            if service_center_id and int(service_center_id) != user.service_center.id:
+                # If trying to update different service center, deny access
+                return get_object_or_404(ServiceCenter, id=0)  # Force 404
+            return get_object_or_404(ServiceCenter, id=user.service_center.id)
+        else:
+            # Staff cannot update SMS frequency settings
+            return get_object_or_404(ServiceCenter, id=0)  # Force 404
+
+    def perform_update(self, serializer):
+        """Custom update logic if needed"""
+        serializer.save()
+        # You can add logging or additional logic here if needed
+
 
 
 @swagger_auto_schema(

@@ -60,6 +60,10 @@ class ServiceCenter(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    sms_frequency_for_private_vehicles = models.IntegerField(default=3, help_text="Sms Frequency for Pvt vehicle Default at 3 months data in months")
+    sms_frequency_for_transport_vehicles = models.IntegerField(default=3, help_text="Sms Frequency for Transport vehicle Default at 3 months data in months")
+
     class Meta:
         verbose_name = "Service Center"
         verbose_name_plural = "Service Centers"

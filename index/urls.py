@@ -26,4 +26,18 @@ urlpatterns = [
         
     # Dashboard
     path('dashboard/stats/', views.dashboard_stats, name='dashboard-stats'),
+     # SMS Frequency Update
+    # path(
+    #     'service-centers/<int:pk>/sms-frequency/', 
+    #     views.SMSFrequencyUpdateView.as_view(), 
+    #     name='service-center-sms-frequency-update'
+    # ),
+    
+    # Alternative URL pattern if you want to update current user's service center SMS frequency
+    path(
+        'my-service-center/sms-frequency/', 
+        views.SMSFrequencyUpdateView.as_view(), 
+        {'pk': None},  # Will be handled in get_object method
+        name='my-service-center-sms-frequency-update'
+    ),
 ]

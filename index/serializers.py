@@ -197,7 +197,10 @@ class ServiceCenterDetailSerializer(serializers.ModelSerializer):
     admin_users = serializers.SerializerMethodField(
         help_text="List of admin users for this service center"
     )
-    total_users = serializers.SerializerMethodField(
+    all_users = serializers.SerializerMethodField(
+        help_text="List of all users in this service center"
+    )
+    total_users_count = serializers.SerializerMethodField(
         help_text="Total number of users in this service center"
     )
     can_access_service = serializers.ReadOnlyField(
@@ -217,7 +220,7 @@ class ServiceCenterDetailSerializer(serializers.ModelSerializer):
             'is_active', 'trial_started_at', 'trial_ends_at',
             'subscription_started_at', 'subscription_valid_until',
             'razorpay_customer_id', 'razorpay_subscription_id',
-            'current_subscription', 'admin_users', 'total_users',
+            'current_subscription', 'admin_users', 'all_users', 'total_users_count',
             'can_access_service', 'is_trial_active', 'is_subscription_active',
             'created_at', 'updated_at'
         ]
@@ -243,13 +246,37 @@ class ServiceCenterDetailSerializer(serializers.ModelSerializer):
         admins = obj.users.filter(role='centeradmin')
         return [{
             'id': user.id,
+            'username': user.username,
             'email': user.email,
-            'is_active': user.is_active
+            'phone_number': user.phone_number,
+            'role': user.role,
+            'is_active': user.is_active,
+            'date_joined': user.date_joined,
+            'last_login': user.last_login
         } for user in admins]
 
-    def get_total_users(self, obj):
+    def get_all_users(self, obj):
+        """Get all users for this service center"""
+        users = obj.users.all()
+        return [{
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'phone_number': user.phone_number,
+            'role': user.role,
+            'role_display': user.get_role_display(),
+            'is_active': user.is_active,
+            'is_staff': user.is_staff,
+            'date_joined': user.date_joined,
+            'last_login': user.last_login
+        } for user in users]
+
+    def get_total_users_count(self, obj):
         """Get total user count"""
         return obj.users.count()
+    
+
+
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -513,6 +540,48 @@ class ErrorResponseSerializer(serializers.Serializer):
         required=False,
         help_text="Detailed error information"
     )
+
+
+
+# serializers.py
+from rest_framework import serializers
+from .models import ServiceCenter
+
+class SMSFrequencyUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating SMS frequency settings of a service center
+    """
+    
+    class Meta:
+        model = ServiceCenter
+        fields = [
+            'sms_frequency_for_private_vehicles',
+            'sms_frequency_for_transport_vehicles'
+        ]
+    
+    def validate_sms_frequency_for_private_vehicles(self, value):
+        """Validate private vehicle SMS frequency"""
+        if value < 1 or value > 12:
+            raise serializers.ValidationError(
+                "SMS frequency for private vehicles must be between 1 and 12 months"
+            )
+        return value
+    
+    def validate_sms_frequency_for_transport_vehicles(self, value):
+        """Validate transport vehicle SMS frequency"""
+        if value < 1 or value > 12:
+            raise serializers.ValidationError(
+                "SMS frequency for transport vehicles must be between 1 and 12 months"
+            )
+        return value
+
+
+
+
+
+
+
+
 
 
 # payment_serializers.py - Add these to your existing serializers.py file
