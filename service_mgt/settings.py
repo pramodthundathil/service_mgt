@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     "corsheaders",
     'drf_yasg',
     'drf_spectacular',
-    'social_django',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -73,17 +72,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'service_mgt.wsgi.application'
-SOCIAL_AUTH_PIPELINE = (
-    'social_core.pipeline.social_auth.social_details',
-    'social_core.pipeline.social_auth.social_uid',
-    'social_core.pipeline.social_auth.auth_allowed',
-    'social_core.pipeline.social_auth.social_user',
-    'social_core.pipeline.user.get_username',
-    'social_core.pipeline.user.create_user',  # Step to create a user
-    'social_core.pipeline.social_auth.associate_user',
-    'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details',
-)
+# SOCIAL_AUTH_PIPELINE = (
+#     'social_core.pipeline.social_auth.social_details',
+#     'social_core.pipeline.social_auth.social_uid',
+#     'social_core.pipeline.social_auth.auth_allowed',
+#     'social_core.pipeline.social_auth.social_user',
+#     'social_core.pipeline.user.get_username',
+#     'social_core.pipeline.user.create_user',  # Step to create a user
+#     'social_core.pipeline.social_auth.associate_user',
+#     'social_core.pipeline.social_auth.load_extra_data',
+#     'social_core.pipeline.user.user_details',
+# )
 SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
     'SECURITY_DEFINITIONS': {
@@ -238,14 +237,14 @@ USE_I18N = True
 
 USE_TZ = True
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = ""       # Google Client ID
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "" # Google Client Secret
-SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']    # Permissions to request
-# Redirect URI (same as you set in the Google Console)
-SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:8000/auth/google/callback/'
+# SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = ""       # Google Client ID
+# SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "" # Google Client Secret
+# SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = ['email', 'profile']    # Permissions to request
+# # Redirect URI (same as you set in the Google Console)
+# SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:8000/auth/google/callback/'
 
-# Google OAuth2 settings
-GOOGLE_CLIENT_ID = ""
+# # Google OAuth2 settings
+# GOOGLE_CLIENT_ID = ""
 
 
 # Static files (CSS, JavaScript, Images)
