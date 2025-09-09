@@ -8,6 +8,8 @@ urlpatterns = [
     path("auth_sign_out/",views.auth_sign_out, name="auth_sign_out"),
     path("user_profile/",views.user_profile, name="user_profile"),
     path("dashboard/",views.admin_dashboard,name="admin_dashboard"),
+    path('admin/dashboard-api/', views.dashboard_api_data, name='dashboard_api_data'),
+    
     path("service-centers/",views.admin_servicecenters,name="admin_servicecenters"),
     path("service-centers/add",views.service_center_add,name="service_center_add"),
     

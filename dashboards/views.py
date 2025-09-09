@@ -41,10 +41,232 @@ def admin_login(request):
 
     return render(request, "login.html")
 
+# views.py - Add this to your existing views.py file
+
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Sum, Q, Avg
+from django.db.models.functions import TruncMonth, TruncWeek
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.http import JsonResponse
+from django.core.serializers.json import DjangoJSONEncoder
+import json
+
+from index.models import ServiceCenter, CustomUser, PaymentTransaction, SubscriptionHistory
+from interactions.models import Customer, VehicleOnService, ServiceEntry, Brand
+
+
 @admin_only
 @login_required
 def admin_dashboard(request):
-    return render(request,"index.html")
+    """Admin dashboard with comprehensive analytics"""
+    
+    # Date ranges for filtering
+    today = timezone.now().date()
+    last_30_days = today - timedelta(days=30)
+    last_12_months = today - timedelta(days=365)
+    
+    # ==== SERVICE CENTER ANALYTICS ====
+    total_service_centers = ServiceCenter.objects.count()
+    active_service_centers = ServiceCenter.objects.filter(is_active=True).count()
+    trial_centers = ServiceCenter.objects.filter(
+        trial_ends_at__gte=timezone.now(),
+        subscription_valid_until__isnull=True
+    ).count()
+    subscribed_centers = ServiceCenter.objects.filter(
+        subscription_valid_until__gte=today
+    ).count()
+    expired_centers = ServiceCenter.objects.filter(
+        Q(trial_ends_at__lt=timezone.now()) & 
+        (Q(subscription_valid_until__lt=today) | Q(subscription_valid_until__isnull=True))
+    ).count()
+    
+    # ==== FINANCIAL ANALYTICS ====
+    total_revenue = PaymentTransaction.objects.filter(
+        status='completed'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    monthly_revenue = PaymentTransaction.objects.filter(
+        status='completed',
+        completed_at__gte=last_30_days
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    yearly_revenue = PaymentTransaction.objects.filter(
+        status='completed',
+        completed_at__gte=last_12_months
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # ==== CUSTOMER ANALYTICS ====
+    total_customers = Customer.objects.count()
+    new_customers_30_days = Customer.objects.filter(
+        date_added__gte=last_30_days
+    ).count()
+    
+    total_vehicles = VehicleOnService.objects.count()
+    total_services = ServiceEntry.objects.count()
+    
+    # ==== USER ANALYTICS ====
+    total_users = CustomUser.objects.count()
+    admin_users = CustomUser.objects.filter(role='admin').count()
+    center_admin_users = CustomUser.objects.filter(role='centeradmin').count()
+    staff_users = CustomUser.objects.filter(role='staff').count()
+    
+    # ==== CHART DATA ====
+    
+    # Monthly Revenue Chart (Last 12 months)
+    monthly_revenue_data = PaymentTransaction.objects.filter(
+        status='completed',
+        completed_at__gte=last_12_months
+    ).annotate(
+        month=TruncMonth('completed_at')
+    ).values('month').annotate(
+        revenue=Sum('amount')
+    ).order_by('month')
+    
+    # Service Centers Growth Chart (Last 12 months)
+    centers_growth_data = ServiceCenter.objects.filter(
+        created_at__gte=last_12_months
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        count=Count('id')
+    ).order_by('month')
+    
+    # Customer Growth Chart (Last 12 months)
+    customer_growth_data = Customer.objects.filter(
+        date_added__gte=last_12_months
+    ).annotate(
+        month=TruncMonth('date_added')
+    ).values('month').annotate(
+        count=Count('id')
+    ).order_by('month')
+    
+    # Service Types Distribution
+    service_types_data = ServiceEntry.objects.values('service_type').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # Vehicle Types Distribution
+    vehicle_types_data = VehicleOnService.objects.values(
+        'transport_type'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # Top Brands
+    top_brands_data = VehicleOnService.objects.filter(
+        vehicle_type__isnull=False
+    ).values(
+        'vehicle_type__brand__name'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    
+    # Recent Activities
+    recent_service_centers = ServiceCenter.objects.order_by('-created_at')[:5]
+    recent_transactions = PaymentTransaction.objects.filter(
+        status='completed'
+    ).order_by('-completed_at')[:10]
+    recent_services = ServiceEntry.objects.order_by('-created_at')[:10]
+    
+    # Subscription Status Distribution
+    subscription_status_data = [
+        {'status': 'Active Subscriptions', 'count': subscribed_centers},
+        {'status': 'Trial Period', 'count': trial_centers},
+        {'status': 'Expired', 'count': expired_centers},
+    ]
+    
+    # Weekly activity (Last 4 weeks)
+    weekly_activity = ServiceEntry.objects.filter(
+        created_at__gte=timezone.now() - timedelta(weeks=4)
+    ).annotate(
+        week=TruncWeek('created_at')
+    ).values('week').annotate(
+        services=Count('id')
+    ).order_by('week')
+    
+    context = {
+        # Summary Cards Data
+        'total_service_centers': total_service_centers,
+        'active_service_centers': active_service_centers,
+        'trial_centers': trial_centers,
+        'subscribed_centers': subscribed_centers,
+        'expired_centers': expired_centers,
+        
+        # Financial Data
+        'total_revenue': total_revenue,
+        'monthly_revenue': monthly_revenue,
+        'yearly_revenue': yearly_revenue,
+        
+        # Customer Data
+        'total_customers': total_customers,
+        'new_customers_30_days': new_customers_30_days,
+        'total_vehicles': total_vehicles,
+        'total_services': total_services,
+        
+        # User Data
+        'total_users': total_users,
+        'admin_users': admin_users,
+        'center_admin_users': center_admin_users,
+        'staff_users': staff_users,
+        
+        # Chart Data (JSON serialized for JavaScript)
+        'monthly_revenue_data': json.dumps(list(monthly_revenue_data), cls=DjangoJSONEncoder),
+        'centers_growth_data': json.dumps(list(centers_growth_data), cls=DjangoJSONEncoder),
+        'customer_growth_data': json.dumps(list(customer_growth_data), cls=DjangoJSONEncoder),
+        'service_types_data': json.dumps(list(service_types_data), cls=DjangoJSONEncoder),
+        'vehicle_types_data': json.dumps(list(vehicle_types_data), cls=DjangoJSONEncoder),
+        'top_brands_data': json.dumps(list(top_brands_data), cls=DjangoJSONEncoder),
+        'subscription_status_data': json.dumps(subscription_status_data, cls=DjangoJSONEncoder),
+        'weekly_activity': json.dumps(list(weekly_activity), cls=DjangoJSONEncoder),
+        
+        # Recent Activities
+        'recent_service_centers': recent_service_centers,
+        'recent_transactions': recent_transactions,
+        'recent_services': recent_services,
+    }
+    
+    return render(request, "index.html", context)
+
+
+@admin_only
+@login_required
+def dashboard_api_data(request):
+    """API endpoint for dashboard data updates"""
+    data_type = request.GET.get('type', 'summary')
+    
+    if data_type == 'summary':
+        today = timezone.now().date()
+        
+        data = {
+            'service_centers': ServiceCenter.objects.count(),
+            'total_revenue': PaymentTransaction.objects.filter(
+                status='completed'
+            ).aggregate(total=Sum('amount'))['total'] or 0,
+            'customers': Customer.objects.count(),
+            'services_today': ServiceEntry.objects.filter(
+                service_date=today
+            ).count(),
+        }
+        
+    elif data_type == 'revenue':
+        last_12_months = timezone.now().date() - timedelta(days=365)
+        revenue_data = PaymentTransaction.objects.filter(
+            status='completed',
+            completed_at__gte=last_12_months
+        ).annotate(
+            month=TruncMonth('completed_at')
+        ).values('month').annotate(
+            revenue=Sum('amount')
+        ).order_by('month')
+        
+        data = list(revenue_data)
+    
+    else:
+        data = {'error': 'Invalid data type'}
+    
+    return JsonResponse(data, safe=False, encoder=DjangoJSONEncoder)
 
 @admin_only
 @login_required
