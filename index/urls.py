@@ -50,10 +50,10 @@ urlpatterns = [
         {'pk': None},  # Will be handled in get_object method
         name='my-service-center-sms-frequency-update'
     ),
-     path('api/', include(router.urls)),
+     path('users/', include(router.urls)),
     
     # Admin-only endpoints (for Super Admin)
-    path('api/admin/', include(admin_router.urls)),
+    path('users/admin/', include(admin_router.urls)),
 ]
 
 
