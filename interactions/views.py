@@ -13,7 +13,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Brand, VehicleVariant, Customer, VehicleOnService, ServiceEntry
 from .serializers import *
-
+from .sms_service import SMSService
 
 # ============= USER VIEWS =============
 
@@ -244,6 +244,23 @@ class VehicleOnServiceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Sum, Count
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+import logging
+
+# Assuming you've imported your SMSService
+# from your_app.services import SMSService
+
+logger = logging.getLogger(__name__)
+
 class ServiceEntryViewSet(viewsets.ModelViewSet):
     """ViewSet for ServiceEntry model with full CRUD operations."""
     
@@ -263,6 +280,61 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
         return ServiceEntry.objects.filter(
             service_center=self.request.user.service_center
         ).select_related('customer', 'vehicle', 'performed_by', 'service_center')
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to send SMS notification after service entry creation"""
+        # Call the parent create method
+        response = super().create(request, *args, **kwargs)
+        
+        if response.status_code == status.HTTP_201_CREATED:
+            try:
+                # Get the created service entry
+                service_entry = ServiceEntry.objects.get(id=response.data['id'])
+                
+                # Get customer phone number
+                customer_phone = service_entry.customer.phone
+                if customer_phone:
+                    self.send_service_confirmation_sms(service_entry, customer_phone)
+                else:
+                    logger.warning(f"No phone number found for customer {service_entry.customer.name}")
+                    
+            except Exception as e:
+                logger.error(f"Error sending SMS for service entry {response.data.get('id')}: {str(e)}")
+                # Don't fail the creation if SMS fails
+                pass
+        
+        return response
+    
+    def send_service_confirmation_sms(self, service_entry, phone):
+        """Send SMS confirmation for service entry"""
+        try:
+            sms_service = SMSService(
+                access_token="YJ8L0667PZR51ZM",
+                access_token_key="=E8pnW@%I[3er-2KfZ|R*5CV,67v/Q(h"
+            )
+            
+            # Create a more appropriate message for service confirmation
+            message_content = (
+
+                
+                f"Your vehicle alignment was done at {service_entry.kilometer} km. The next alignment is due at {service_entry.next_kilometer} km. Thank you visit again - MAHARAJA HUB"
+                
+            )
+            
+            # You'll need to update these template IDs for service confirmation
+            sms_result = sms_service.send_sms(
+                recipients=[phone],
+                message_content=message_content,
+                sms_header="MHAHUB",
+                entity_id="1707175827594933121",
+                template_id="1707175826212677196",  # Update this for service confirmation template
+            )
+            
+            logger.info(f"SMS sent successfully for service entry {service_entry.id}: {sms_result}")
+            
+        except Exception as e:
+            logger.error(f"Failed to send SMS for service entry {service_entry.id}: {str(e)}")
+            raise
     
     @swagger_auto_schema(
         operation_description="Get overdue services in your service center",
@@ -330,6 +402,8 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
             'total_revenue': total_revenue,
             'service_types': service_types
         })
+
+
 
 
 class DashboardViewSet(viewsets.ViewSet):
