@@ -309,8 +309,8 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
         """Send SMS confirmation for service entry"""
         try:
             sms_service = SMSService(
-                access_token="YJ8L0667PZR51ZM",
-                access_token_key="=E8pnW@%I[3er-2KfZ|R*5CV,67v/Q(h"
+                access_token="B4E2AL68DJFSENJ",
+                access_token_key=";Wva|blE+0BMAuY@RPUX*tqzNhHJCF[-"
             )
             
             # Create a more appropriate message for service confirmation
@@ -326,7 +326,7 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
                 recipients=[phone],
                 message_content=message_content,
                 sms_header="MHAHUB",
-                entity_id="1707175827594933121",
+                entity_id="1701175741468435288",
                 template_id="1707175826212677196",  # Update this for service confirmation template
             )
             
