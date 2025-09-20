@@ -180,10 +180,14 @@ class ServiceEntry(models.Model):
         verbose_name_plural = 'Service Entries'
 
     def save(self, *args, **kwargs):
+        from dateutil.relativedelta import relativedelta
         # Ensure service_center matches customer's and vehicle's service_center
         if self.customer:
             self.service_center = self.customer.service_center
-            
+        if self.vehicle.transport_type == 'private':
+            self.next_service_due_date = self.service_date + relativedelta(months=self.service_center.sms_frequency_for_private_vehicles)
+        else:
+            self.next_service_due_date = self.service_date + relativedelta(months=self.service_center.sms_frequency_for_transport_vehicles)
         super().save(*args, **kwargs)
 
     def clean(self):
