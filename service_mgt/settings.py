@@ -254,11 +254,11 @@ USE_TZ = True
 from decouple import config
 
 # Razorpay Configuration
-RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='rzp_test_9tCOZuKLhiZdaM')
-RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='IfMivqkfXWvuJi2IR10W4bzN')
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='rzp_live_RgjOvaGCtg8jTQ')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='TQci4V3clqvAFV6wnXygDZQq')
 
-RAZOR_KEY_ID = "rzp_test_9tCOZuKLhiZdaM"
-RAZOR_KEY_SECRET = "IfMivqkfXWvuJi2IR10W4bzN"
+RAZOR_KEY_ID = "rzp_live_RgjOvaGCtg8jTQ"
+RAZOR_KEY_SECRET = "TQci4V3clqvAFV6wnXygDZQq"
 # For testing, use Razorpay test keys
 # RAZORPAY_KEY_ID = 'rzp_test_xxxxxxxxxx'
 # RAZORPAY_KEY_SECRET = 'your_test_secret_key'
