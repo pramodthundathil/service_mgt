@@ -2,11 +2,9 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from ...models import ServiceEntry
-from ...sms_service import SMSService   # replace with your actual SMS function/provider
+from ...sms_service import SMSService
+from whatsapp_service import WhatsAppService
 import logging
-
-# Assuming you've imported your SMSService
-# from your_app.services import SMSService
 
 logger = logging.getLogger(__name__)
 
@@ -17,39 +15,51 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         today = timezone.now().date()
 
-        # 2 days before due
+        # Pre-create service objects (optimization)
+        whatsapp = WhatsAppService(api_key="f4286546-aa2e-4f3a-8266-d5bf2da00521")
+
+        # -------------------------------
+        # 1️⃣  Two days before due date
+        # -------------------------------
         two_days_before = today + timedelta(days=2)
         entries_due_soon = ServiceEntry.objects.filter(next_service_due_date=two_days_before)
 
         for entry in entries_due_soon:
             customer = entry.customer
             customer_phone = customer.phone
-            message = (
-                f"Dear {customer.name}, your {entry.vehicle.vehicle_number} "
-                f"is due for {entry.get_service_type_display()} on {entry.next_service_due_date}. "
-                "Please book your service in advance."
-            )
-            if customer_phone:
-                    self.send_service_confirmation_sms(entry, customer_phone)
-            else:
-                logger.warning(f"No phone number found for customer {entry.customer.name}")
-            # SMSService(customer.phone, message)   # your SMS API
-            # self.stdout.write(self.style.SUCCESS(f"Sent reminder for {entry}"))
-            print("sms sent", message)
 
-        # 1 day after due
-        yesterday = today - timedelta(days=1)
-        overdue_entries = ServiceEntry.objects.filter(next_service_due_date=yesterday)
+            if not customer_phone:
+                logger.warning(f"No phone number found for customer {customer.name}")
+                continue
 
-        # for entry in overdue_entries:
-        #     customer = entry.customer
-        #     message = (
-        #         f"Dear {customer.name}, your {entry.vehicle.vehicle_number} "
-        #         f"was due for {entry.get_service_type_display()} on {entry.next_service_due_date}. "
-        #         "Please visit the service center as soon as possible."
-        #     )
-        #     SMSService(customer.phone, message)
-        #     self.stdout.write(self.style.WARNING(f"Sent overdue reminder for {entry}"))
+            # SMS Reminder
+            self.send_service_confirmation_sms(entry, customer_phone)
+
+            # WhatsApp Template Message
+            try:
+                body_params = [
+                    {"type": "text", "text": str(entry.vehicle.vehicle_number)},
+                    {"type": "text", "text": str(entry.next_service_due_date)},
+                ]
+
+                wa_result = whatsapp.send_template_message(
+                    to=f"+91{customer_phone}",
+                    template_name="reminder",
+                    body_params=body_params
+                )
+
+                logger.info(f"WhatsApp reminder sent for entry {entry.id}: {wa_result}")
+            except Exception as e:
+                logger.error(f"WhatsApp failed for entry {entry.id}: {str(e)}")
+
+        # -------------------------------
+        # 2️⃣  One day after due date (future extension)
+        # -------------------------------
+        # yesterday = today - timedelta(days=1)
+        # overdue_entries = ServiceEntry.objects.filter(next_service_due_date=yesterday)
+        # (Your overdue logic was commented so kept same)
+
+
     def send_service_confirmation_sms(self, service_entry, phone):
         """Send SMS confirmation for service entry"""
         try:
@@ -57,25 +67,23 @@ class Command(BaseCommand):
                 access_token="B4E2AL68DJFSENJ",
                 access_token_key=";Wva|blE+0BMAuY@RPUX*tqzNhHJCF[-"
             )
-            
-            # Create a more appropriate message for service confirmation
-            message_content = (
 
-                f"Dear Customer, Next wheel alignment for your vehicle {service_entry.vehicle.vehicle_number} is due at {service_entry.next_kilometer} km. Kindly check and align on time. Wheel Alignment Info- Maharaja Hub"
-                
+            message_content = (
+                f"Dear Customer, Next wheel alignment for your vehicle "
+                f"{service_entry.vehicle.vehicle_number} is due at {service_entry.next_kilometer} km. "
+                f"Kindly check and align on time. Wheel Alignment Info- Maharaja Hub"
             )
-            
-            # You'll need to update these template IDs for service confirmation
+
             sms_result = sms_service.send_sms(
                 recipients=[phone],
                 message_content=message_content,
                 sms_header="MHAHUB",
                 entity_id="1701175741468435288",
-                template_id="1707175825891756292",  # Update this for service confirmation template
+                template_id="1707175825891756292",
             )
-            
+
             logger.info(f"SMS sent successfully for service entry {service_entry.id}: {sms_result}")
-            
+
         except Exception as e:
-            logger.error(f"Failed to send SMS for service entry {service_entry.id}: {str(e)}")
+            logger.error(f"Failed to send SMS for entry {service_entry.id}: {str(e)}")
             raise

@@ -308,6 +308,7 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
     def send_service_confirmation_sms(self, service_entry, phone):
         """Send SMS confirmation for service entry"""
         try:
+            
             sms_service = SMSService(
                 access_token="B4E2AL68DJFSENJ",
                 access_token_key=";Wva|blE+0BMAuY@RPUX*tqzNhHJCF[-"
@@ -320,7 +321,20 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
                 f"Your vehicle alignment was done at {service_entry.kilometer} km. The next alignment is due at {service_entry.next_kilometer} km. Thank you visit again - MAHARAJA HUB"
                 
             )
-            
+            from .whatsapp_service import WhatsAppService
+            whatsapp = WhatsAppService(api_key="f4286546-aa2e-4f3a-8266-d5bf2da00521")
+            body_params = [
+            {"type": "text", "text": str(service_entry.kilometer)},
+            {"type": "text", "text": str(service_entry.next_kilometer)},
+            ]
+            wa_result = whatsapp.send_template_message(
+                to=f"+91{phone}",
+                template_name="servicecomplete",
+                body_params=body_params
+            )
+            print(wa_result,"------------------")
+            logger.info(f"WhatsApp sent successfully for service entry {service_entry.id}: {wa_result}")
+
             # You'll need to update these template IDs for service confirmation
             sms_result = sms_service.send_sms(
                 recipients=[phone],
