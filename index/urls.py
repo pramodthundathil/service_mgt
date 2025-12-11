@@ -17,7 +17,7 @@ admin_router.register('users', AdminServiceCenterUserViewSet, basename='admin-us
 urlpatterns = [
     # Authentication
     path('auth/login/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    
+
     # Service Center Management
     path('service-centers/register/', views.ServiceCenterRegistrationView.as_view(), name='service-center-register'),
     path('service-centers/', views.ServiceCenterListView.as_view(), name='service-center-list'),
@@ -54,6 +54,8 @@ urlpatterns = [
     
     # Admin-only endpoints (for Super Admin)
     path('users/admin/', include(admin_router.urls)),
+    path('auth/forgot-password/', views.forgot_password, name='forgot_password'),
+    path('auth/reset_password/', views.reset_password, name='reset_password'),
 ]
 
 

@@ -81,3 +81,7 @@ def validate_license_key_format(license_key):
     
     # Expected format: XXXX-XXXX-XXXX-XXXX-XXXX
     pattern = r'^[A-Z0-9]{4}-[A-Z0-9]{4}-'
+
+
+def generate_otp():
+    return str(random.randint(100000, 999999))

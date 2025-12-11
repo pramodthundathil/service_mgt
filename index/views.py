@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_list_or_404
 from django.contrib import messages
+from .utils import generate_otp
+from django.core.mail import send_mail
 
 # auth jwt token and permissions
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -46,7 +48,7 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
-from .models import ServiceCenter, CustomUser, LicenseKey, Subscription
+from .models import ServiceCenter, CustomUser, LicenseKey, Subscription,PasswordResetOTP
 from .serializers import (
     ServiceCenterRegistrationSerializer,
     ServiceCenterDetailSerializer,
@@ -1948,5 +1950,73 @@ class AdminServiceCenterUserViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': 'Failed to fetch statistics'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    email = request.data.get('email')
+ 
+    if not email:
+        return Response({"success": False, "message": "email is required"}, status=400)
 
+    # Check user exists
+    try:
+        user = CustomUser.objects.get(email=email)
+    except CustomUser.DoesNotExist:
+        return Response({"success": False, "message": "User not found"}, status=404)
 
+    # Generate OTP
+    print("Generating OTP for user:", user)
+    otp = generate_otp()
+
+    # Save OTP in DB
+    PasswordResetOTP.objects.create(user=user, otp=otp)
+
+    # Send Email
+    try:
+        send_mail(
+        subject="Your Password Reset OTP",
+        message=f"Your OTP for password reset is: {otp}",
+        from_email='profitgym.management@gmail.com',
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+    except Exception as e:
+        print("Email Error:", str(e))
+        return Response({"success": False, "message": "Failed to send OTP email"}, status=500)
+
+    return Response({"success": True, "message": "OTP sent to your email"})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    email = request.data.get("email")
+    otp = request.data.get("otp")
+    new_password = request.data.get("new_password")
+
+    if not email or not otp or not new_password:
+        return Response({
+            "success": False,
+            "message": "email, otp and new_password are required"
+        }, status=400)
+
+    try:
+        user = CustomUser.objects.get(email=email)
+    except CustomUser.DoesNotExist:
+        return Response({"success": False, "message": "User not found"}, status=404)
+
+    try:
+        otp_obj = PasswordResetOTP.objects.get(user=user, otp=otp)
+    except PasswordResetOTP.DoesNotExist:
+        return Response({"success": False, "message": "Invalid OTP"}, status=400)
+
+    # Reset password
+    user.set_password(new_password)
+    user.save()
+
+    otp_obj.delete()  # Remove used OTP
+
+    return Response({"success": True, "message": "Password reset successful"})
+
+    
