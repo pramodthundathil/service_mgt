@@ -4,6 +4,8 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import timedelta, date
 import uuid
+from datetime import timedelta, date
+
 
 
 class CustomUserManager(BaseUserManager):
@@ -206,7 +208,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         regex=r'^\+?1?\d{9,15}$',
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
     )
-    phone_number = models.CharField(validators=[phone_regex], max_length=17)
+    phone_number = models.IntegerField(validators=[phone_regex], max_length=17)
     
     # Role and service center
     role = models.CharField(max_length=20, choices=USER_ROLES)
@@ -320,10 +322,7 @@ class Subscription(models.Model):
 
 # models.py - Add these models to your existing models.py file
 
-from django.db import models
-from django.utils import timezone
-from datetime import timedelta, date
-import uuid
+
 
 
 class PaymentPlan(models.Model):
@@ -515,5 +514,19 @@ class SMSLog(models.Model):
     
     def __str__(self):
         return f"{self.sms_type} to {self.customer.name} - {self.status}"
+    
+
+
+
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    def is_valid(self):
+        # OTP valid for 10 minutes
+        return timezone.now() <= self.created_at + timedelta(minutes=10)
+
 
 

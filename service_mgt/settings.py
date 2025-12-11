@@ -9,7 +9,6 @@ from celery.schedules import crontab
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -289,6 +288,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SMS_API_KEY = 'your-sms-provider-api-key'
 SMS_SENDER_ID = 'YourServiceCenter'  # Max 6 characters for promotional SMS
 SMS_API_URL = 'https://your-sms-provider.com/api/send'  # Your SMS provider's API URL
+
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'profitgym.management@gmail.com'
+EMAIL_HOST_PASSWORD = 'psoovwzscskarabv'
 
 # Celery Configuration (if using Celery for background tasks)
 CELERY_BEAT_SCHEDULE = {
