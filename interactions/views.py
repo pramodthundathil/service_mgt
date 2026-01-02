@@ -329,7 +329,7 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
             ]
             wa_result = whatsapp.send_template_message(
                 to=f"+91{phone}",
-                template_name="servicedonene",
+                template_name="remindernewadded",
                 body_params=body_params
             )
             print(wa_result,"------------------")
