@@ -31,7 +31,7 @@ class Command(BaseCommand):
             if not customer_phone:
                 logger.warning(f"No phone number found for customer {customer.name}")
                 continue
-
+          
             # SMS Reminder
             self.send_service_confirmation_sms(entry, customer_phone)
 
