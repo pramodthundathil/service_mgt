@@ -44,7 +44,7 @@ class Command(BaseCommand):
 
                 wa_result = whatsapp.send_template_message(
                     to=f"+91{customer_phone}",
-                    template_name="serveicedonenewadded",
+                    template_name="completaed_new",
                     body_params=body_params
                 )
 
