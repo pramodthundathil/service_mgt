@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 duration_months=12,
                 defaults={
                     'name': '1 Year Subscription',
-                    'price': 1499.00,
+                    'price': 1999.00,
                     'currency': 'INR',
                     'description': '1 Year subscription extension for service centers',
                     'is_active': True

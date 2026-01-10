@@ -864,7 +864,7 @@ class PaymentPlanListView(generics.ListAPIView):
     operation_description="""
     Create Razorpay order for subscription extension
     
-    Creates a new payment order for 1-year subscription extension (₹1499).
+    Creates a new payment order for 1-year subscription extension (₹1999).
     Only center admins can initiate payment for their service center.
     """,
     tags=['Payment Management']

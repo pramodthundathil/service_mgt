@@ -969,7 +969,7 @@ class CreatePaymentOrderSerializer(serializers.Serializer):
     amount = serializers.DecimalField(
         max_digits=10, 
         decimal_places=2,
-        help_text="Amount to be paid (₹1499 for 1 year extension)"
+        help_text="Amount to be paid (₹1999 for 1 year extension)"
     )
     currency = serializers.CharField(
         default='INR',
@@ -978,8 +978,8 @@ class CreatePaymentOrderSerializer(serializers.Serializer):
     
     def validate_amount(self, value):
         """Validate payment amount"""
-        if value != 1499.00:
-            raise serializers.ValidationError("Invalid amount. 1 year extension costs ₹1499")
+        if value != 1999.00:
+            raise serializers.ValidationError("Invalid amount. 1 year extension costs ₹1999")
         return value
     
     def validate(self, attrs):
