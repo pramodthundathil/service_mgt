@@ -3,7 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from ...models import ServiceEntry
 from ...sms_service import SMSService
-from whatsapp_service import WhatsAppService
+from ...whatsapp_service import WhatsAppService
 import logging
 
 logger = logging.getLogger(__name__)
