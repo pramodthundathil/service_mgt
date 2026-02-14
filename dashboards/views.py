@@ -13,8 +13,45 @@ from index.models import ServiceCenter, CustomUser, LicenseKey, Subscription
 def landing_page(request):
     return render(request,"landing_page.html")
 
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+from .forms import UserProfileForm
+
+@login_required
 def user_profile(request):
-    return render(request, '')
+    user = request.user
+    if request.method == 'POST':
+        if 'profile_update' in request.POST:
+            profile_form = UserProfileForm(request.POST, instance=user)
+            password_form = PasswordChangeForm(user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, 'Your profile was successfully updated!')
+                return redirect('user_profile')
+            else:
+                 messages.error(request, 'Please correct the error below.')
+        elif 'password_change' in request.POST:
+            profile_form = UserProfileForm(instance=user)
+            password_form = PasswordChangeForm(user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)  # Important!
+                messages.success(request, 'Your password was successfully updated!')
+                return redirect('user_profile')
+            else:
+                messages.error(request, 'Please correct the error below.')
+        else:
+             profile_form = UserProfileForm(instance=user)
+             password_form = PasswordChangeForm(user)
+    else:
+        profile_form = UserProfileForm(instance=user)
+        password_form = PasswordChangeForm(user)
+        
+    return render(request, 'dashboards/user_profile.html', {
+        'profile_form': profile_form,
+        'password_form': password_form
+    })
+
 
 def auth_sign_out(request):
     logout(request)

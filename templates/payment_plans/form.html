@@ -1,0 +1,65 @@
+{% extends 'index.html' %}
+
+
+{% block content %}
+<div class="content-page">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between">
+                        <div class="header-title">
+                            <h4 class="card-title">{% if form.instance.pk %}Edit Payment Plan{% else %}Add Payment Plan{% endif %}</h4>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Plan Name *</label>
+                                        {{ form.name }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Plan Type *</label>
+                                        {{ form.plan_type }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Duration (Months) *</label>
+                                        {{ form.duration_months }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Price *</label>
+                                        {{ form.price }}
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Description</label>
+                                        {{ form.description }}
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="custom-control custom-checkbox custom-checkbox-color-check custom-control-inline">
+                                        {{ form.is_active }}
+                                        <label class="custom-control-label" for="{{ form.is_active.id_for_label }}">Active</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mr-2">Save Plan</button>
+                            <a href="{% url 'payment-plans-list' %}" class="btn btn-danger">Cancel</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

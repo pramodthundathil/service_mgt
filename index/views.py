@@ -58,6 +58,10 @@ from .serializers import (
     LicenseKeySerializer,
     SMSFrequencyUpdateSerializer,
 )
+from .forms import PaymentPlanForm
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.urls import reverse_lazy
 
 
 class ServiceCenterRegistrationView(generics.CreateAPIView):
@@ -2020,3 +2024,45 @@ def reset_password(request):
     return Response({"success": True, "message": "Password reset successful"})
 
     
+# Payment Plan Management Views (HTML)
+
+class AdminRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.role == 'admin'
+
+class PaymentPlanDashboardListView(LoginRequiredMixin, AdminRequiredMixin, ListView):
+    model = PaymentPlan
+    template_name = 'payment_plans/list.html'
+    context_object_name = 'plans'
+    ordering = ['price']
+
+class PaymentPlanDashboardCreateView(LoginRequiredMixin, AdminRequiredMixin, CreateView):
+    model = PaymentPlan
+    form_class = PaymentPlanForm
+    template_name = 'payment_plans/form.html'
+    success_url = reverse_lazy('payment-plans-list')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Payment Plan created successfully.')
+        return response
+
+class PaymentPlanDashboardUpdateView(LoginRequiredMixin, AdminRequiredMixin, UpdateView):
+    model = PaymentPlan
+    form_class = PaymentPlanForm
+    template_name = 'payment_plans/form.html'
+    success_url = reverse_lazy('payment-plans-list')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Payment Plan updated successfully.')
+        return response
+
+class PaymentPlanDashboardDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
+    model = PaymentPlan
+    template_name = 'payment_plans/confirm_delete.html'
+    success_url = reverse_lazy('payment-plans-list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Payment Plan deleted successfully.')
+        return super().delete(request, *args, **kwargs)

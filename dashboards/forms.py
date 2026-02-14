@@ -385,3 +385,14 @@ class AddVariantForm(forms.ModelForm):
         if commit:
             variant.save()
         return variant
+
+
+class UserProfileForm(BaseFormControlMixin, forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'email', 'phone_number']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs['readonly'] = True
+        self.fields['email'].widget.attrs['readonly'] = True
