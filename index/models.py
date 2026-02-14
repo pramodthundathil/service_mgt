@@ -208,7 +208,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         regex=r'^\+?1?\d{9,15}$',
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
     )
-    phone_number = models.IntegerField(validators=[phone_regex], max_length=17)
+    phone_number = models.IntegerField(validators=[phone_regex])
     
     # Role and service center
     role = models.CharField(max_length=20, choices=USER_ROLES)
