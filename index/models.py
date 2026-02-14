@@ -78,7 +78,7 @@ class ServiceCenter(models.Model):
         
         # Set trial end date if new instance
         if not self.trial_ends_at:
-            self.trial_ends_at = timezone.now() + timedelta(days=15)
+            self.trial_ends_at = timezone.now() + timedelta(days=0)
         
         super().save(*args, **kwargs)
 
@@ -184,7 +184,7 @@ class LicenseKey(models.Model):
 
         if is_new:
             self.key = generate_license_key()
-            self.valid_until = timezone.now().date() + timedelta(days=15)
+            self.valid_until = timezone.now().date() + timedelta(days=0)
 
         super().save(*args, **kwargs)
 

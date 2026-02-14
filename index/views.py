@@ -87,7 +87,7 @@ class ServiceCenterRegistrationView(generics.CreateAPIView):
                                 "license_key": "ABCD1234567890123456",
                                 "trial_ends_at": "2024-08-16T10:30:00Z"
                             },
-                            "trial_days_remaining": 15
+                            "trial_days_remaining": 0
                         }
                     }
                 }
