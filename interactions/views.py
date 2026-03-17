@@ -324,12 +324,15 @@ class ServiceEntryViewSet(viewsets.ModelViewSet):
             from .whatsapp_service import WhatsAppService
             whatsapp = WhatsAppService(api_key="f4286546-aa2e-4f3a-8266-d5bf2da00521")
             body_params = [
+            {"type": "text", "text": str(service_entry.vehicle.vehicle_number)},
             {"type": "text", "text": str(service_entry.kilometer)},
             {"type": "text", "text": str(service_entry.next_kilometer)},
+            {"type": "text", "text": str(service_entry.service_center.phone)},
+            {"type": "text", "text": str(service_entry.service_center.name)},
             ]
             wa_result = whatsapp.send_template_message(
                 to=f"+91{phone}",
-                template_name="remindernewadded",
+                template_name="servicecompleatedupdated",
                 body_params=body_params
             )
             print(wa_result,"------------------")
