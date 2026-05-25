@@ -978,8 +978,8 @@ class CreatePaymentOrderSerializer(serializers.Serializer):
     
     def validate_amount(self, value):
         """Validate payment amount"""
-        if value != 1999.00:
-            raise serializers.ValidationError("Invalid amount. 1 year extension costs ₹1999")
+        if value != 1499.00:
+            raise serializers.ValidationError("Invalid amount. 1 year extension costs ₹1499")
         return value
     
     def validate(self, attrs):
