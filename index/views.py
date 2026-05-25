@@ -928,7 +928,7 @@ def create_payment_order(request):
             duration_months=12,
             defaults={
                 'name': '1 Year Extension',
-                'price': 1999.00,
+                'price': 1499.00,
                 'currency': 'INR',
                 'description': '1 Year subscription extension'
             }
